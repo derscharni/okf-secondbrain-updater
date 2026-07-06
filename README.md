@@ -9,11 +9,14 @@ updated from a git-hosted markdown corpus, written as
 
 ```
 second-brain-okf-updater/
-├── okf_sync.py            # the tool itself (stdlib only, incl. optional LLM client)
-├── config.example.json    # copy to config.json and edit
+├── okf_sync.py              # the tool itself (stdlib only, incl. optional LLM client, --watch mode)
+├── check_okf_spec.py        # weekly drift check against the upstream OKF spec
+├── config.example.json      # copy to config.json and edit
 ├── scripts/
-│   ├── install_cron.sh    # self-service cron installer
-│   └── uninstall_cron.sh  # removes the installed cron entry
+│   ├── install_cron.sh              # self-service cron installer (batch sync)
+│   ├── uninstall_cron.sh            # removes the batch sync cron entry
+│   ├── install_spec_check_cron.sh   # self-service cron installer (weekly spec check)
+│   └── uninstall_spec_check_cron.sh # removes the spec check cron entry
 ├── README.md
 ├── LICENSE                 # MIT
 └── .gitignore
@@ -96,6 +99,45 @@ invents new tags, so your tag vocabulary stays consistent. If a call fails
 and falls back to the keyword/paragraph method for that note, so a flaky
 LLM never breaks a sync run. Pass `--no-llm` to force keyword/paragraph
 mode for a single run regardless of what's in `config.json`.
+
+## Watch mode — sync the moment a note is created
+
+Instead of waiting for the next batch run, `--watch` does an initial full
+sync and then keeps running, syncing each new or changed `.md` the moment
+`fswatch` reports it (same pattern as `membrane/vault_sanitizer.py`):
+
+```bash
+python okf_sync.py --watch
+```
+
+Requires `fswatch` (`brew install fswatch`). Runs in the foreground — use a
+`launchd`/cron-managed process, `tmux`, or similar to keep it alive across
+reboots; this project doesn't install a persistent watcher service itself.
+
+## Spec drift check
+
+`okf_sync.py` implements OKF v0.1 as published in
+[GoogleCloudPlatform/knowledge-catalog](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) —
+a spec that can change upstream. `check_okf_spec.py` checks, once a week,
+whether that path has new commits since the last check. It never modifies
+`okf_sync.py`'s behavior automatically — it only reports drift so a human
+can decide whether the frontmatter fields still match the current spec.
+
+```bash
+python3 check_okf_spec.py                    # check now, state in .okf-spec-state.json
+python3 check_okf_spec.py --state other.json # use a different state file
+```
+
+First run records a baseline silently. Later runs print nothing new unless
+the upstream `okf/` path has changed, in which case it prints the old and
+new commit SHAs, the latest commit message, and a link to review.
+
+```bash
+# weekly, Monday 09:00 by default
+./scripts/install_spec_check_cron.sh
+SCHEDULE="0 9 * * MON" ./scripts/install_spec_check_cron.sh
+./scripts/uninstall_spec_check_cron.sh
+```
 
 ## Automatic runs via cron
 

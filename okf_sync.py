@@ -63,6 +63,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -378,6 +379,17 @@ def build_note(path: Path, cfg: dict, raw_base: str | None) -> str:
 
 # ── Sync ─────────────────────────────────────────────────────────────────────
 
+def sync_one(path: Path, source_dir: Path, vault_dest: Path, cfg: dict, raw_base: str | None) -> str:
+    """Sync a single file. Returns 'created' or 'updated'."""
+    rel = path.relative_to(source_dir)
+    dest = vault_dest / rel
+    note = build_note(path, cfg, raw_base)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    existed = dest.exists()
+    dest.write_text(note, encoding="utf-8")
+    return "updated" if existed else "created"
+
+
 def sync(cfg: dict, dry_run: bool, force: bool, since: str | None) -> None:
     source_dir = Path(cfg["source_dir"]).expanduser().resolve()
     vault_dest = Path(cfg["vault_path"]).expanduser() / cfg["dest_folder"]
@@ -404,20 +416,63 @@ def sync(cfg: dict, dry_run: bool, force: bool, since: str | None) -> None:
             counts["skipped"] += 1
             continue
 
-        note = build_note(path, cfg, raw_base)
         if dry_run:
+            note = build_note(path, cfg, raw_base)
             counts["dry"] += 1
             print(f"\n{'─'*60}\nPREVIEW: {path.relative_to(source_dir)}\n{'─'*60}")
             print(note[: note.index("---", 4) + 3])
         else:
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            existed = dest.exists()
-            dest.write_text(note, encoding="utf-8")
-            counts["updated" if existed else "created"] += 1
-            print(f"  [{'updated' if existed else 'created':7s}] {path.relative_to(source_dir)}")
+            result = sync_one(path, source_dir, vault_dest, cfg, raw_base)
+            counts[result] += 1
+            print(f"  [{result:7s}] {path.relative_to(source_dir)}")
 
     total = counts["created"] + counts["updated"] + counts["dry"]
     print(f"\n{'─'*40}\n  synced  : {total}\n  skipped : {counts['skipped']}")
+
+
+# ── Watch ────────────────────────────────────────────────────────────────────
+
+def watch(cfg: dict) -> None:
+    """Sync new/changed .md files the moment they appear, via fswatch.
+    Runs an initial full sync first, then blocks watching for events —
+    same fswatch pattern as membrane/vault_sanitizer.py."""
+    source_dir = Path(cfg["source_dir"]).expanduser().resolve()
+    vault_dest = Path(cfg["vault_path"]).expanduser() / cfg["dest_folder"]
+    raw_base = cfg["resource_base_url"] or detect_git_raw_base(source_dir)
+
+    if not source_dir.is_dir():
+        sys.exit(f"source_dir does not exist: {source_dir}")
+
+    print(f"[watch] initial sync of {source_dir}")
+    sync(cfg, dry_run=False, force=False, since=None)
+    print(f"[watch] watching {source_dir} for new/changed .md files (Ctrl-C to stop)...")
+
+    proc = subprocess.Popen(
+        ["fswatch", "-r",
+         "--event", "Created", "--event", "Updated",
+         "--event", "Renamed", "--event", "MovedTo",
+         "-e", ".*", "-i", r"\.md$", str(source_dir)],
+        stdout=subprocess.PIPE, text=True,
+    )
+    try:
+        for line in proc.stdout:
+            path = Path(line.strip())
+            if path.suffix != ".md" or not path.exists():
+                continue
+            try:
+                path.relative_to(source_dir)
+            except ValueError:
+                continue
+            time.sleep(0.3)  # let the write finish
+            try:
+                result = sync_one(path, source_dir, vault_dest, cfg, raw_base)
+                print(f"  [watch:{result}] {path.relative_to(source_dir)}")
+            except Exception as e:
+                print(f"  [watch:error] {path}: {e}", file=sys.stderr)
+    except KeyboardInterrupt:
+        print("[watch] stopping.")
+    finally:
+        proc.terminate()
 
 
 def main() -> None:
@@ -430,12 +485,19 @@ def main() -> None:
         "--no-llm", action="store_true",
         help="Force keyword/paragraph mode for this run, ignoring config.json's llm.enabled",
     )
+    parser.add_argument(
+        "--watch", action="store_true",
+        help="after an initial sync, keep running and sync each new/changed .md immediately (requires fswatch)",
+    )
     args = parser.parse_args()
 
     cfg = load_config(args.config)
     if args.no_llm:
         cfg["llm"]["enabled"] = False
-    sync(cfg, dry_run=args.dry_run, force=args.force, since=args.since)
+    if args.watch:
+        watch(cfg)
+    else:
+        sync(cfg, dry_run=args.dry_run, force=args.force, since=args.since)
 
 
 if __name__ == "__main__":
