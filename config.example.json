@@ -1,0 +1,32 @@
+{
+  "source_dir": "/path/to/your/git/repo/or/notes/folder",
+  "vault_path": "/Users/yourname/Documents/MyObsidianVault",
+  "dest_folder": "OKF Sync",
+  "file_glob": "**/*.md",
+  "type_field": "Note",
+
+  "resource_base_url": null,
+
+  "tags": {
+    "static": ["synced"],
+
+    "mode": "top_n",
+    "top_n": 2,
+    "min_hits": 2,
+
+    "keyword_rules": {
+      "example-topic-a": ["keyword one", "keyword two"],
+      "example-topic-b": ["another keyword", "yet another"]
+    }
+  },
+
+  "llm": {
+    "enabled": false,
+    "provider": "anthropic",
+    "model": "claude-sonnet-5",
+    "api_key_env": "ANTHROPIC_API_KEY",
+    "base_url": null,
+    "use_for": ["tags"],
+    "timeout": 30
+  }
+}
