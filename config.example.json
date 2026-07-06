@@ -18,5 +18,15 @@
       "example-topic-a": ["keyword one", "keyword two"],
       "example-topic-b": ["another keyword", "yet another"]
     }
+  },
+
+  "llm": {
+    "enabled": false,
+    "provider": "anthropic",
+    "model": "claude-sonnet-5",
+    "api_key_env": "ANTHROPIC_API_KEY",
+    "base_url": null,
+    "use_for": ["tags"],
+    "timeout": 30
   }
 }

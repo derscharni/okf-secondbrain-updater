@@ -38,6 +38,12 @@ top N that clear a minimum hit count — so tags reflect each note's
 dominant topics, not just "any topic it briefly touches." Switch to `any`
 mode if you'd rather have exhaustive (but noisier) tagging.
 
+Optionally, tagging and/or description generation can be delegated to an
+LLM (Anthropic, an OpenAI-compatible API, or a local Ollama model) — see
+the "llm" section in config.example.json and the README. This is opt-in,
+uses only `urllib` from the stdlib, and falls back to the keyword/paragraph
+methods above on any error.
+
 Usage
 -----
     cp config.example.json config.json   # edit source_dir / vault_path / tags
@@ -46,15 +52,19 @@ Usage
     python okf_sync.py --force           # overwrite already-synced notes
     python okf_sync.py --since 2026-05-01  # only files dated on/after this
     python okf_sync.py --config path/to/other-config.json
+    python okf_sync.py --no-llm          # force keyword/paragraph mode, ignore "llm" config
 
-Requires: Python 3.10+, stdlib only.
+Requires: Python 3.10+, stdlib only (LLM calls use urllib, no SDK deps).
 """
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -86,6 +96,14 @@ def load_config(path: Path) -> dict:
     cfg["tags"].setdefault("mode", "top_n")   # "top_n" or "any"
     cfg["tags"].setdefault("top_n", 2)
     cfg["tags"].setdefault("min_hits", 2)
+    cfg.setdefault("llm", {})
+    cfg["llm"].setdefault("enabled", False)
+    cfg["llm"].setdefault("provider", "anthropic")  # "anthropic", "openai", or "ollama"
+    cfg["llm"].setdefault("model", "claude-sonnet-5")
+    cfg["llm"].setdefault("api_key_env", "ANTHROPIC_API_KEY")
+    cfg["llm"].setdefault("base_url", None)
+    cfg["llm"].setdefault("use_for", ["tags"])  # subset of ["tags", "description"]
+    cfg["llm"].setdefault("timeout", 30)
     return cfg
 
 
@@ -125,7 +143,7 @@ def extract_description(body: str, max_len: int = 240) -> str:
     return ""
 
 
-def detect_tags(content: str, tags_cfg: dict) -> list[str]:
+def detect_tags_by_keyword(content: str, tags_cfg: dict) -> list[str]:
     lower = content.lower()
     rules: dict[str, list[str]] = tags_cfg["keyword_rules"]
     scores = {tag: sum(lower.count(kw.lower()) for kw in kws) for tag, kws in rules.items()}
@@ -137,6 +155,16 @@ def detect_tags(content: str, tags_cfg: dict) -> list[str]:
         ranked = sorted(scores.items(), key=lambda kv: -kv[1])[: tags_cfg["top_n"]]
         matched = [t for t, c in ranked if c >= tags_cfg["min_hits"]]
 
+    return matched
+
+
+def detect_tags(content: str, tags_cfg: dict, llm_cfg: dict) -> list[str]:
+    matched = None
+    if llm_cfg["enabled"] and "tags" in llm_cfg["use_for"]:
+        candidates = list(tags_cfg["keyword_rules"].keys())
+        matched = llm_pick_tags(content, candidates, tags_cfg["top_n"], llm_cfg)
+    if matched is None:
+        matched = detect_tags_by_keyword(content, tags_cfg)
     return list(tags_cfg["static"]) + matched
 
 
@@ -154,6 +182,131 @@ def detect_date_for_filter(path: Path) -> str | None:
         return m.group(1)
     mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
     return mtime.strftime("%Y-%m-%d")
+
+
+# ── LLM (optional) ───────────────────────────────────────────────────────────
+
+def llm_complete(prompt: str, llm_cfg: dict) -> str | None:
+    """Dispatch a single-turn completion request to the configured provider.
+    Returns None (and prints a warning) on any failure, so callers can fall
+    back to the non-LLM extraction method for that note."""
+    provider = llm_cfg["provider"]
+    try:
+        if provider == "anthropic":
+            return _llm_anthropic(prompt, llm_cfg)
+        if provider == "openai":
+            return _llm_openai(prompt, llm_cfg)
+        if provider == "ollama":
+            return _llm_ollama(prompt, llm_cfg)
+        print(f"  [llm warning] unknown provider {provider!r} — skipping", file=sys.stderr)
+    except Exception as e:
+        print(f"  [llm warning] {provider} call failed ({e}) — falling back", file=sys.stderr)
+    return None
+
+
+def _llm_api_key(llm_cfg: dict) -> str | None:
+    env_name = llm_cfg.get("api_key_env")
+    if not env_name:
+        return None
+    key = os.environ.get(env_name)
+    if not key:
+        raise RuntimeError(f"env var {env_name} is not set")
+    return key
+
+
+def _llm_post_json(url: str, headers: dict, body: dict, timeout: int) -> dict:
+    req = urllib.request.Request(
+        url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST"
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _llm_anthropic(prompt: str, llm_cfg: dict) -> str:
+    data = _llm_post_json(
+        (llm_cfg.get("base_url") or "https://api.anthropic.com") + "/v1/messages",
+        {
+            "x-api-key": _llm_api_key(llm_cfg),
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        },
+        {
+            "model": llm_cfg["model"],
+            "max_tokens": 300,
+            "messages": [{"role": "user", "content": prompt}],
+        },
+        llm_cfg["timeout"],
+    )
+    return data["content"][0]["text"]
+
+
+def _llm_openai(prompt: str, llm_cfg: dict) -> str:
+    data = _llm_post_json(
+        (llm_cfg.get("base_url") or "https://api.openai.com/v1") + "/chat/completions",
+        {
+            "Authorization": f"Bearer {_llm_api_key(llm_cfg)}",
+            "Content-Type": "application/json",
+        },
+        {
+            "model": llm_cfg["model"],
+            "max_tokens": 300,
+            "messages": [{"role": "user", "content": prompt}],
+        },
+        llm_cfg["timeout"],
+    )
+    return data["choices"][0]["message"]["content"]
+
+
+def _llm_ollama(prompt: str, llm_cfg: dict) -> str:
+    data = _llm_post_json(
+        (llm_cfg.get("base_url") or "http://localhost:11434") + "/api/chat",
+        {"Content-Type": "application/json"},
+        {
+            "model": llm_cfg["model"],
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": False,
+        },
+        llm_cfg["timeout"],
+    )
+    return data["message"]["content"]
+
+
+def llm_pick_tags(body: str, candidates: list[str], top_n: int, llm_cfg: dict) -> list[str] | None:
+    """Ask the LLM to choose the most relevant tags from `candidates` only —
+    it never invents new tags, so the vault's tag vocabulary stays whatever
+    is configured in tags.keyword_rules. Returns None on failure/bad output."""
+    if not candidates:
+        return []
+    prompt = (
+        f"Choose up to {top_n} of the most relevant tags for the note below, "
+        f"using ONLY tags from this list (fewer or none if none clearly apply): "
+        f"{json.dumps(candidates)}\n\n"
+        f"Respond with ONLY a JSON array of strings, nothing else.\n\n"
+        f"Note:\n\"\"\"\n{body[:4000]}\n\"\"\""
+    )
+    reply = llm_complete(prompt, llm_cfg)
+    if reply is None:
+        return None
+    try:
+        match = re.search(r"\[.*\]", reply, re.DOTALL)
+        picked = json.loads(match.group(0) if match else reply)
+        return [t for t in picked if t in candidates][:top_n]
+    except Exception as e:
+        print(f"  [llm warning] could not parse tag response ({e}) — falling back", file=sys.stderr)
+        return None
+
+
+def llm_generate_description(body: str, max_len: int, llm_cfg: dict) -> str | None:
+    prompt = (
+        f"Write one concise description (max {max_len} characters, one sentence, "
+        f"no markdown, no quotes) summarizing the note below for use as knowledge-base "
+        f"metadata. Respond with ONLY the description text.\n\n"
+        f"Note:\n\"\"\"\n{body[:4000]}\n\"\"\""
+    )
+    reply = llm_complete(prompt, llm_cfg)
+    if reply is None:
+        return None
+    return reply.strip().strip('"')[:max_len]
 
 
 # ── Resource URL ────────────────────────────────────────────────────────────
@@ -194,11 +347,16 @@ def yaml_escape(text: str) -> str:
 def build_note(path: Path, cfg: dict, raw_base: str | None) -> str:
     content = path.read_text(encoding="utf-8")
     body = strip_frontmatter(content)
+    llm_cfg = cfg["llm"]
 
     title = extract_title(body, cfg["title_pattern"], path.stem)
-    description = extract_description(body)
+    description = None
+    if llm_cfg["enabled"] and "description" in llm_cfg["use_for"]:
+        description = llm_generate_description(body, 240, llm_cfg)
+    if description is None:
+        description = extract_description(body)
     resource = resolve_resource_url(path, Path(cfg["source_dir"]), raw_base)
-    tags = detect_tags(body, cfg["tags"])
+    tags = detect_tags(body, cfg["tags"], llm_cfg)
     timestamp = detect_timestamp(path)
 
     lines = [
@@ -268,9 +426,15 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--since", help="Only sync files dated on/after YYYY-MM-DD")
+    parser.add_argument(
+        "--no-llm", action="store_true",
+        help="Force keyword/paragraph mode for this run, ignoring config.json's llm.enabled",
+    )
     args = parser.parse_args()
 
     cfg = load_config(args.config)
+    if args.no_llm:
+        cfg["llm"]["enabled"] = False
     sync(cfg, dry_run=args.dry_run, force=args.force, since=args.since)
 
 
