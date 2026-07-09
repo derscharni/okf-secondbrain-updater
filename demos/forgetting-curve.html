@@ -1,0 +1,1159 @@
+<title>Forgetting Curve Lab</title>
+<style>
+/* ============================================================
+   FORGETTING CURVE LAB — design tokens
+   Palette: paper #f2f4f4 · petrol #15262e · cobalt #2a78d6
+            verdigris #128a63 · ochre #c98500 · madder #d03b3b
+   ============================================================ */
+:root{
+  --paper:#f2f4f4;
+  --panel:#fbfcfc;
+  --panel-2:#eaeeee;
+  --ink:#15262e;
+  --ink-2:#43555c;
+  --muted:#6e7f85;
+  --hairline:#d6dedf;
+  --grid:#e4e9e9;
+  --axis:#a4b2b5;
+  --signal:#2a78d6;
+  --signal-text:#1c5cab;
+  --signal-soft:rgba(42,120,214,.11);
+  --alt:#128a63;
+  --alt-text:#0d6f4f;
+  --alt-soft:rgba(18,138,99,.11);
+  --warn:#c98500;
+  --lapse:#d03b3b;
+  --halo:#fbfcfc;
+  --focus:#1c5cab;
+  --shadow:0 1px 2px rgba(21,38,46,.05),0 6px 24px -12px rgba(21,38,46,.14);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#0d1215;
+    --panel:#151c21;
+    --panel-2:#1b242a;
+    --ink:#ecf1f2;
+    --ink-2:#b6c2c6;
+    --muted:#829499;
+    --hairline:#27333a;
+    --grid:#1e282e;
+    --axis:#4a5b62;
+    --signal:#4a90e8;
+    --signal-text:#7bb0f0;
+    --signal-soft:rgba(74,144,232,.14);
+    --alt:#2eb586;
+    --alt-text:#4cc79b;
+    --alt-soft:rgba(46,181,134,.13);
+    --warn:#d99a1f;
+    --lapse:#e66767;
+    --halo:#151c21;
+    --focus:#7bb0f0;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px -12px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="light"]{
+  --paper:#f2f4f4; --panel:#fbfcfc; --panel-2:#eaeeee;
+  --ink:#15262e; --ink-2:#43555c; --muted:#6e7f85;
+  --hairline:#d6dedf; --grid:#e4e9e9; --axis:#a4b2b5;
+  --signal:#2a78d6; --signal-text:#1c5cab; --signal-soft:rgba(42,120,214,.11);
+  --alt:#128a63; --alt-text:#0d6f4f; --alt-soft:rgba(18,138,99,.11);
+  --warn:#c98500; --lapse:#d03b3b; --halo:#fbfcfc; --focus:#1c5cab;
+  --shadow:0 1px 2px rgba(21,38,46,.05),0 6px 24px -12px rgba(21,38,46,.14);
+}
+:root[data-theme="dark"]{
+  --paper:#0d1215; --panel:#151c21; --panel-2:#1b242a;
+  --ink:#ecf1f2; --ink-2:#b6c2c6; --muted:#829499;
+  --hairline:#27333a; --grid:#1e282e; --axis:#4a5b62;
+  --signal:#4a90e8; --signal-text:#7bb0f0; --signal-soft:rgba(74,144,232,.14);
+  --alt:#2eb586; --alt-text:#4cc79b; --alt-soft:rgba(46,181,134,.13);
+  --warn:#d99a1f; --lapse:#e66767; --halo:#151c21; --focus:#7bb0f0;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px -12px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box}
+:root{
+  --font-display:"Iowan Old Style","Palatino Linotype",Palatino,"URW Palladio L",P052,"Book Antiqua",Georgia,serif;
+  --font-body:Charter,"Bitstream Charter","Sitka Text",Cambria,Georgia,serif;
+  --font-mono:ui-monospace,"SF Mono","Cascadia Code","Source Code Pro",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  color-scheme:light dark;
+}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:1.0625rem;
+  line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:var(--signal-soft)}
+
+/* ---------- structure ---------- */
+.prose{max-width:66ch;margin-inline:auto;padding-inline:22px}
+.wide{max-width:1020px;margin-inline:auto;padding-inline:22px}
+p{margin:0 0 1.15em}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;line-height:1.16;text-wrap:balance;margin:0}
+h2{font-size:clamp(1.55rem,3.4vw,2.05rem);letter-spacing:-.008em;margin-bottom:.55em}
+h3{font-size:1.14rem;margin:1.6em 0 .5em}
+em{font-style:italic}
+strong{font-weight:650}
+a{color:var(--signal-text);text-decoration-thickness:1px;text-underline-offset:2.5px}
+a:hover{text-decoration-thickness:2px}
+code,.mono{font-family:var(--font-mono);font-size:.86em}
+sup,sub{line-height:0}
+
+.eyebrow{
+  font-family:var(--font-mono);font-size:.68rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:.7em;
+  margin:0 0 1.1em;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--hairline)}
+.eyebrow .no{color:var(--signal-text);font-weight:600}
+
+section{padding:4.2rem 0 1.4rem}
+header.masthead{padding:4.6rem 0 2.2rem}
+
+/* ---------- masthead ---------- */
+.masthead .kicker{
+  font-family:var(--font-mono);font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:1.4rem;
+}
+.masthead h1{
+  font-size:clamp(2.5rem,7vw,4.3rem);
+  letter-spacing:-.015em;font-weight:600;
+}
+.masthead h1 .thin{font-style:italic;font-weight:400;color:var(--ink-2)}
+.masthead .dek{
+  font-size:1.16rem;color:var(--ink-2);max-width:56ch;margin-top:1.3rem;text-wrap:balance;
+}
+.masthead .byline{font-family:var(--font-mono);font-size:.72rem;color:var(--muted);margin-top:1.6rem;letter-spacing:.05em}
+
+/* theme toggle */
+#themeBtn{
+  position:fixed;top:14px;right:14px;z-index:50;
+  font-family:var(--font-mono);font-size:.68rem;letter-spacing:.08em;
+  background:var(--panel);color:var(--ink-2);
+  border:1px solid var(--hairline);border-radius:999px;
+  padding:.42em .95em;cursor:pointer;box-shadow:var(--shadow);
+}
+#themeBtn:hover{color:var(--ink);border-color:var(--axis)}
+
+/* ---------- figure panel ---------- */
+.fig{
+  background:var(--panel);border:1px solid var(--hairline);border-radius:10px;
+  box-shadow:var(--shadow);
+  padding:18px 18px 14px;margin:1.9rem 0;
+}
+.fig-head{display:flex;flex-wrap:wrap;gap:.6em 1em;align-items:baseline;margin-bottom:.35rem}
+.fig-title{font-family:var(--font-display);font-size:1.02rem;font-weight:600}
+.fig-sub{font-family:var(--font-mono);font-size:.7rem;color:var(--muted);letter-spacing:.03em}
+.chip{
+  font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;
+  padding:.22em .6em;border-radius:3px;border:1px solid var(--hairline);
+  color:var(--muted);background:var(--panel-2);white-space:nowrap;
+}
+.chip.data{color:var(--alt-text);border-color:color-mix(in srgb,var(--alt) 40%,transparent);background:var(--alt-soft)}
+.chip.model{color:var(--signal-text);border-color:color-mix(in srgb,var(--signal) 40%,transparent);background:var(--signal-soft)}
+.fig-note{font-family:var(--font-mono);font-size:.68rem;color:var(--muted);margin-top:.6rem;line-height:1.55}
+.scrollbox{overflow-x:auto;overscroll-behavior-x:contain}
+svg{display:block;max-width:100%;height:auto}
+svg.grabbable{cursor:crosshair;touch-action:none}
+
+/* SVG chart classes — all colors via tokens so themes recolor live */
+.gridline{stroke:var(--grid);stroke-width:1}
+.axisline{stroke:var(--axis);stroke-width:1}
+.ticktext{font-family:var(--font-mono);font-size:10.5px;fill:var(--muted)}
+.axtitle{font-family:var(--font-mono);font-size:10px;fill:var(--muted);letter-spacing:.08em}
+.dlabel{font-family:var(--font-mono);font-size:11px;fill:var(--ink-2)}
+.dlabel.sig{fill:var(--signal-text)}
+.dlabel.alt{fill:var(--alt-text)}
+.dlabel.strong{fill:var(--ink);font-weight:600}
+.curve-sig{stroke:var(--signal);stroke-width:2.25;fill:none;stroke-linecap:round}
+.curve-alt{stroke:var(--alt);stroke-width:2.25;fill:none;stroke-linecap:round}
+.curve-ghost{stroke:var(--muted);stroke-width:1.5;fill:none;stroke-dasharray:2 5;stroke-linecap:round}
+.area-sig{fill:var(--signal);opacity:.10}
+.area-alt{fill:var(--alt);opacity:.10}
+.dot-sig{fill:var(--signal);stroke:var(--halo);stroke-width:2}
+.dot-alt{fill:var(--alt);stroke:var(--halo);stroke-width:2}
+.dot-data{fill:var(--ink);stroke:var(--halo);stroke-width:2}
+.hairv{stroke:var(--axis);stroke-width:1;stroke-dasharray:3 3}
+.flagline{stroke:var(--warn);stroke-width:1.5}
+.flaghead{fill:var(--warn)}
+.mk{rx:1.5}
+.mk-good{fill:var(--alt)}
+.mk-hard{fill:var(--warn)}
+.mk-lapse{fill:var(--lapse)}
+.mk-next{fill:none;stroke:var(--axis);stroke-width:1.2}
+.rowband{fill:var(--panel-2);opacity:.5}
+.hit{fill:transparent;pointer-events:all}
+
+/* ---------- controls ---------- */
+.controls{display:flex;flex-wrap:wrap;gap:1.1rem 2rem;margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--hairline)}
+.ctrl{display:flex;flex-direction:column;gap:.32rem;min-width:170px;flex:1;max-width:270px}
+.ctrl label{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ctrl .val{color:var(--ink);font-weight:600;text-transform:none;letter-spacing:0;font-size:.78rem;font-variant-numeric:tabular-nums}
+input[type=range]{
+  appearance:none;-webkit-appearance:none;width:100%;height:22px;background:transparent;cursor:pointer;margin:0;
+}
+input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--hairline)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:15px;height:15px;border-radius:50%;
+  background:var(--signal);border:2.5px solid var(--halo);box-shadow:0 0 0 1px var(--axis);
+  margin-top:-6px;
+}
+input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:var(--hairline)}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--signal);border:2.5px solid var(--halo);box-shadow:0 0 0 1px var(--axis)}
+:is(button,input,a,[tabindex]):focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+
+.btn{
+  font-family:var(--font-mono);font-size:.74rem;letter-spacing:.05em;
+  background:var(--ink);color:var(--paper);border:1px solid var(--ink);
+  border-radius:6px;padding:.55em 1.1em;cursor:pointer;
+}
+.btn:hover{opacity:.88}
+.btn.ghost{background:transparent;color:var(--ink-2);border-color:var(--hairline)}
+.btn.ghost:hover{color:var(--ink);border-color:var(--axis);opacity:1}
+.btn[disabled]{opacity:.4;cursor:default}
+
+/* stat tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:1rem}
+.tile{background:var(--panel-2);border-radius:8px;padding:.7rem .9rem}
+.tile .k{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tile .v{font-family:var(--font-mono);font-size:1.35rem;font-weight:600;font-variant-numeric:tabular-nums;margin-top:.15rem}
+.tile .v small{font-size:.72rem;font-weight:400;color:var(--muted)}
+.tile.sig .v{color:var(--signal-text)}
+.tile.alt .v{color:var(--alt-text)}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem;font-family:var(--font-mono);font-size:.7rem;color:var(--ink-2);margin-top:.55rem}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:.45em;vertical-align:-1px}
+
+/* tabs */
+.tabs{display:flex;gap:6px;margin-bottom:.9rem}
+.tab{
+  font-family:var(--font-mono);font-size:.72rem;letter-spacing:.05em;
+  background:transparent;color:var(--muted);border:1px solid var(--hairline);
+  border-radius:6px;padding:.5em 1em;cursor:pointer;
+}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* flashcard */
+.cardwrap{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:760px){.cardwrap{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}}
+.flashcard{
+  background:var(--panel-2);border:1px solid var(--hairline);border-radius:10px;
+  padding:1.2rem 1.3rem;min-height:225px;display:flex;flex-direction:column;gap:.6rem;
+}
+.flashcard .cat{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.flashcard .front{font-family:var(--font-display);font-size:1.35rem;font-weight:600;line-height:1.3;text-wrap:balance}
+.flashcard .back{font-size:1rem;color:var(--ink-2);border-top:1px dashed var(--hairline);padding-top:.7rem}
+.flashcard .meta{font-family:var(--font-mono);font-size:.68rem;color:var(--muted);margin-top:auto;font-variant-numeric:tabular-nums}
+.grades{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:.6rem}
+.gbtn{
+  font-family:var(--font-mono);border-radius:6px;border:1px solid var(--hairline);
+  background:var(--panel);color:var(--ink);cursor:pointer;padding:.5em 0 .4em;
+  display:flex;flex-direction:column;align-items:center;gap:.1em;
+}
+.gbtn b{font-size:.95rem}
+.gbtn span{font-size:.56rem;color:var(--muted);letter-spacing:.02em}
+.gbtn:hover{border-color:var(--axis)}
+.gbtn.fail:hover{border-color:var(--lapse)}
+.gbtn.pass:hover{border-color:var(--alt)}
+.gbtn[disabled]{opacity:.35;cursor:default}
+table.sm2t{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:.72rem;font-variant-numeric:tabular-nums;margin-top:.9rem}
+table.sm2t th{font-weight:400;color:var(--muted);text-align:left;letter-spacing:.06em;text-transform:uppercase;font-size:.6rem;padding:.35em .6em;border-bottom:1px solid var(--hairline)}
+table.sm2t td{padding:.4em .6em;border-bottom:1px solid var(--grid);color:var(--ink-2)}
+table.sm2t td:first-child{color:var(--ink)}
+table.sm2t td.num{text-align:right}
+table.sm2t th.num{text-align:right}
+
+/* tooltip */
+#tip{
+  position:fixed;z-index:60;pointer-events:none;display:none;
+  background:var(--ink);color:var(--paper);
+  font-family:var(--font-mono);font-size:.68rem;line-height:1.5;
+  padding:.5em .7em;border-radius:6px;max-width:260px;
+  box-shadow:0 4px 18px rgba(0,0,0,.25);
+}
+#tip b{font-weight:600}
+
+/* takeaways */
+.takeaways{counter-reset:tk;display:grid;gap:1.1rem;margin:1.8rem 0}
+.tk{border-top:1px solid var(--hairline);padding-top:1rem;display:grid;grid-template-columns:2.6rem 1fr;gap:.6rem}
+.tk::before{
+  counter-increment:tk;content:counter(tk,decimal-leading-zero);
+  font-family:var(--font-mono);font-size:.8rem;color:var(--signal-text);padding-top:.28em;
+}
+.tk h3{margin:0 0 .25em;font-size:1.08rem}
+.tk p{margin:0;color:var(--ink-2);font-size:.98rem}
+
+footer{padding:3rem 0 4.5rem;margin-top:2rem;border-top:1px solid var(--hairline)}
+footer .prose{font-size:.85rem;color:var(--muted);line-height:1.75}
+footer .prose p{margin-bottom:.5em}
+
+.formula{
+  font-family:var(--font-mono);font-size:.86rem;color:var(--ink-2);
+  background:var(--panel-2);border-radius:6px;padding:.65em .95em;display:inline-block;margin:.2em 0 1.1em;
+}
+.smallnote{font-size:.85rem;color:var(--muted)}
+
+@media (prefers-reduced-motion: no-preference){
+  .fig,.tk{transition:opacity .5s ease,transform .5s ease}
+  .reveal-pending{opacity:0;transform:translateY(10px)}
+  #themeBtn,.btn,.tab,.gbtn{transition:opacity .15s,color .15s,border-color .15s,background .15s}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+@media (max-width:560px){
+  .grades{grid-template-columns:repeat(3,1fr)}
+  section{padding-top:3rem}
+}
+</style>
+
+<button id="themeBtn" type="button" aria-label="Toggle color theme">theme: auto</button>
+<div id="tip" role="status" aria-hidden="true"></div>
+
+<header class="masthead">
+  <div class="prose">
+    <p class="kicker">An interactive essay · memory, measured</p>
+    <h1>The Forgetting <span class="thin">Curve</span> Lab</h1>
+    <p class="dek">Why you forget almost everything you learn, why reviewing at the right moment changes the shape of forgetting itself, and what your spaced-repetition app is actually computing when you press <span class="mono">Good</span>.</p>
+    <p class="byline">Ebbinghaus 1885 · SM-2 1987 · stability–retrievability models — every chart below is live. Drag things.</p>
+  </div>
+</header>
+
+<!-- ================= HERO ================= -->
+<section id="hero" style="padding-top:0">
+  <div class="wide">
+    <div class="fig" id="heroFig">
+      <div class="fig-head">
+        <span class="fig-title">Retrievability decays; a well-timed review resets it and raises stability</span>
+        <span class="chip model">Model</span>
+        <span class="fig-sub">drag the ● probe along the curve · drag the ⚑ review flag</span>
+      </div>
+      <div id="heroChart"></div>
+      <div class="tiles">
+        <div class="tile sig"><div class="k">Recall odds at probe</div><div class="v" id="hRprobe">–</div></div>
+        <div class="tile"><div class="k">Stability before review</div><div class="v" id="hS1">–</div></div>
+        <div class="tile"><div class="k">R when reviewed</div><div class="v" id="hRrev">–</div></div>
+        <div class="tile alt"><div class="k">Stability after review</div><div class="v" id="hS2">–</div></div>
+      </div>
+      <div class="controls">
+        <div class="ctrl">
+          <label for="hSl">Initial stability S · <span class="val" id="hSlv">5.0 d</span></label>
+          <input type="range" id="hSl" min="1" max="14" step="0.5" value="5" aria-label="Initial stability in days">
+        </div>
+        <div class="ctrl">
+          <label for="hRevl">Review day · <span class="val" id="hRevlv">day 7</span></label>
+          <input type="range" id="hRevl" min="1" max="55" step="1" value="7" aria-label="Review day">
+        </div>
+        <div class="ctrl">
+          <label for="hCurl">Probe day · <span class="val" id="hCurlv">day 30</span></label>
+          <input type="range" id="hCurl" min="0" max="60" step="0.5" value="30" aria-label="Probe day">
+        </div>
+      </div>
+      <p class="fig-note">Two-component model: retrievability <span class="mono">R&nbsp;=&nbsp;e<sup>−t/S</sup></span> is the probability you can recall the item now; stability <span class="mono">S</span> is how slowly that probability decays. A successful review resets R to 1 and multiplies S — here by <span class="mono">1&nbsp;+&nbsp;4·(1−R)</span>, a toy version of the stability gain in modern schedulers (FSRS-family): the closer you are to forgetting, the more the review strengthens the memory.</p>
+    </div>
+  </div>
+  <div class="prose">
+    <p>Every fact you learn starts dying immediately. Not linearly — exponentially, like a radioactive isotope. The curve above is the modern formalization: your chance of recalling something <em>t</em> days after you last touched it is roughly <em>R</em>&nbsp;=&nbsp;<em>e</em><sup>−t/S</sup>, where <em>S</em> — the memory's <strong>stability</strong> — is its half-life's cousin: the number of days for recall odds to fall to 1/<em>e</em>&nbsp;≈&nbsp;37%.</p>
+    <p>The whole trick of spaced repetition lives in one asymmetry you can feel in the chart: <strong>decay is free, but so is the reset.</strong> One review, placed where the curve has sagged but not collapsed, buys you a new curve that falls several times slower. Do it again and the curve flattens again. Forgetting never stops — you just keep making it slower than your review schedule.</p>
+    <p>This essay walks the idea from its 1885 birth in a Berlin study chamber, through the algorithm running inside Anki and Obsidian's spaced-repetition plugins, to the one dial that actually controls your daily review workload.</p>
+  </div>
+</section>
+
+<!-- ================= 01 EBBINGHAUS ================= -->
+<section id="ebbinghaus">
+  <div class="prose">
+    <p class="eyebrow"><span class="no">§ 01</span><span>Berlin, 1885 · the first measurement</span></p>
+    <h2>Ebbinghaus counts his own forgetting</h2>
+    <p>Hermann Ebbinghaus had a problem: you can't measure memory for meaningful material, because meaning contaminates the measurement — you remember <em>King Lear</em> partly because you understand it. So he built meaningless material: roughly 2,300 <strong>nonsense syllables</strong> — consonant–vowel–consonant triplets like <span class="mono">DAX</span>, <span class="mono">BOK</span>, <span class="mono">YAT</span> — and spent years drilling random lists of them into his own head, alone, to the beat of a metronome.</p>
+    <p>His instrument was the <strong>savings method</strong>. Learn a list until you can recite it twice perfectly, and note the time. Wait. Relearn the same list to the same criterion, and note the time again. Whatever you saved is what your memory kept:</p>
+    <p class="formula">savings = (T<sub>original</sub> − T<sub>relearn</sub>) / T<sub>original</sub></p>
+    <p>It's a beautifully sensitive measure — it detects memory you can no longer consciously recall. The seven points below are his published averages, and they fall off a cliff: <strong>after 20 minutes he had already lost about 42% of the work; after a day, two-thirds; after a month, four-fifths</strong> — savings of just 21.1% at 31 days.</p>
+  </div>
+  <div class="wide">
+    <div class="fig">
+      <div class="fig-head">
+        <span class="fig-title">Retention of nonsense syllables, savings method</span>
+        <span class="chip data">Data · 1885</span>
+        <span class="chip model">Fits</span>
+        <span class="fig-sub">Ebbinghaus, <em>Über das Gedächtnis</em> · note the logarithmic time axis</span>
+      </div>
+      <div id="ebbChart"></div>
+      <div class="legend" id="ebbLegend"></div>
+      <p class="fig-note">Points: Ebbinghaus's seven published savings scores (58.2% at ~20 min → 21.1% at 31 days), replicated in 2015 by Murre &amp; Dros. Solid curve: his own fitted law, <span class="mono">b&nbsp;=&nbsp;100k / ((log&nbsp;t)<sup>c</sup>&nbsp;+&nbsp;k)</span> with k&nbsp;=&nbsp;1.84, c&nbsp;=&nbsp;1.25, t in minutes. Dotted: a single exponential <span class="mono">e<sup>−t/S</sup></span> anchored to the 1-day point — it badly misses both ends, which is the tell that memory is not one decay process but a mixture of traces with different stabilities.</p>
+    </div>
+  </div>
+  <div class="prose">
+    <p>Two things in this chart matter for everything that follows. First, the curve is <strong>steep then merciful</strong>: most forgetting happens absurdly early, but what survives the first days decays slowly. Second, no single exponential fits it — the data spans five orders of magnitude in time, and only a mixture of fast-dying and slow-dying traces (or equivalently, a power law) can bend that way. Each review you do converts fast-dying memory into slower-dying memory. That conversion is the entire business model of spaced repetition.</p>
+  </div>
+</section>
+
+<!-- ================= 02 SPACING ================= -->
+<section id="spacing">
+  <div class="prose">
+    <p class="eyebrow"><span class="no">§ 02</span><span>The spacing effect · same effort, different memory</span></p>
+    <h2>Five reviews, two destinies</h2>
+    <p>Here is the most replicated result in learning science, over a century old and still routinely ignored by students the night before an exam: <strong>identical study time produces wildly different retention depending on when it happens.</strong> Cramming five reviews into five consecutive days feels productive — retrievability stays pinned near 100% all week. But each review arrives while the memory is still fresh, so it strengthens almost nothing. Space the same five reviews out, letting the curve sag before each one, and every review does real work.</p>
+  </div>
+  <div class="wide">
+    <div class="fig">
+      <div class="fig-head">
+        <span class="fig-title">Massed vs spaced: 5 reviews each, 60-day horizon</span>
+        <span class="chip model">Model</span>
+        <span class="fig-sub">shaded area = time-averaged retention · tick marks = reviews</span>
+      </div>
+      <div id="spChart"></div>
+      <div class="tiles">
+        <div class="tile sig"><div class="k">Massed · avg retention (60 d)</div><div class="v" id="spAUCm">–</div></div>
+        <div class="tile alt"><div class="k">Spaced · avg retention (60 d)</div><div class="v" id="spAUCs">–</div></div>
+        <div class="tile"><div class="k">Stability after 5 reviews</div><div class="v" id="spSfin">–</div></div>
+        <div class="tile"><div class="k">Recall odds at day 60</div><div class="v" id="spR60">–</div></div>
+      </div>
+      <div class="controls">
+        <div class="ctrl">
+          <label for="spG">Spacing growth factor · <span class="val" id="spGv">×2.0</span></label>
+          <input type="range" id="spG" min="1.2" max="3" step="0.1" value="2" aria-label="Spacing growth factor">
+        </div>
+        <div class="ctrl" style="max-width:400px">
+          <label>Schedules</label>
+          <span class="val mono" id="spSched" style="font-weight:400"></span>
+        </div>
+      </div>
+      <p class="fig-note">Both learners use the same memory model as the hero (S₀&nbsp;=&nbsp;2&nbsp;d, gain&nbsp;=&nbsp;1&nbsp;+&nbsp;4·(1−R), every review succeeds). Massed: days 0–4. Spaced: gaps grow geometrically by the factor you set. The spacing effect is built into the gain term — reviews at low R strengthen more — which is the model's summary of the empirical literature, not an extra assumption on top of it.</p>
+    </div>
+  </div>
+  <div class="prose">
+    <p>The shaded areas are the honest score: <em>average probability of recall across the whole 60 days</em>. The crammer wins the first week and forfeits the other seven. And notice the endgame numbers — the spaced learner's final review leaves the memory with a stability of months, so the curve barely droops afterward. The crammer's five reviews, for the same total effort, built a memory that still dies in about two weeks.</p>
+    <p>So the ideal schedule is obvious in principle: wait as long as you dare before each review. The question a real system must answer is <em>how long is "as long as you dare" for this card, for this person, today?</em> In 1987, a Polish college student named Piotr Woźniak answered it with about ten lines of arithmetic.</p>
+  </div>
+</section>
+
+<!-- ================= 03 SM-2 ================= -->
+<section id="sm2">
+  <div class="prose">
+    <p class="eyebrow"><span class="no">§ 03</span><span>SuperMemo-2, 1987 · the algorithm in your app</span></p>
+    <h2>SM-2: ten lines that schedule a million cards</h2>
+    <p>Woźniak's SM-2 is still, nearly forty years on, the beating heart of Anki and of Obsidian's spaced-repetition plugin. Each card carries an <strong>ease factor</strong> (EF, starting at 2.5) — a per-card estimate of how forgiving it is. After every review you grade yourself 0–5, and three rules fire:</p>
+    <p><strong>Intervals grow geometrically.</strong> First success: review again in 1 day. Second: 6 days. After that, each new interval is the previous one times EF — so a card at EF 2.5 marches 1&nbsp;→&nbsp;6&nbsp;→&nbsp;15&nbsp;→&nbsp;38&nbsp;→&nbsp;94 days.</p>
+    <p><strong>Ease drifts with your grades.</strong> After each review the ease updates:</p>
+    <p class="formula">EF′ = EF + (0.1 − (5−q)·(0.08 + (5−q)·0.02)),&nbsp;&nbsp;EF′ ≥ 1.3</p>
+    <p>A grade of 5 nudges ease up by 0.10; a 4 leaves it alone; a 3 costs 0.14. The 1.3 floor is where "ease hell" lives — cards that keep getting graded 3 pile up at the minimum and return relentlessly.</p>
+    <p><strong>Failure resets the ladder.</strong> Any grade below 3 sends the card back to a 1-day interval and restarts the 1&nbsp;→&nbsp;6&nbsp;→&nbsp;×EF progression (the ease factor itself is left unchanged on a failed grade, per the original algorithm).</p>
+    <p>Below, a 30-card deck — world capitals, etymologies, physical constants — lives under SM-2 for 180 simulated days. Watch the intervals stretch: early rows are dense with marks, then the gaps between reviews double and double again.</p>
+  </div>
+  <div class="wide">
+    <div class="fig">
+      <div class="tabs" role="tablist" aria-label="Simulator mode">
+        <button class="tab" role="tab" id="tabAuto" aria-selected="true" aria-controls="paneAuto">Virtual learner · 180 days</button>
+        <button class="tab" role="tab" id="tabManual" aria-selected="false" aria-controls="paneManual">Review the deck yourself</button>
+      </div>
+
+      <div id="paneAuto" role="tabpanel" aria-labelledby="tabAuto">
+        <div class="fig-head">
+          <span class="fig-title">Review timeline — one row per card, one mark per review</span>
+          <span class="chip model">Simulation</span>
+          <span class="fig-sub">hover any mark · marks spread apart as intervals grow</span>
+        </div>
+        <div class="scrollbox" id="simTimeline"></div>
+        <div class="legend" id="simLegend"></div>
+        <div class="tiles">
+          <div class="tile"><div class="k">Total reviews (180 d)</div><div class="v" id="simTot">–</div></div>
+          <div class="tile alt"><div class="k">Observed retention</div><div class="v" id="simRet">–</div></div>
+          <div class="tile" style="--c:var(--lapse)"><div class="k">Lapses</div><div class="v" id="simLap">–</div></div>
+          <div class="tile"><div class="k">Mean ease · day 180</div><div class="v" id="simEF">–</div></div>
+          <div class="tile"><div class="k">Median final interval</div><div class="v" id="simIvl">–</div></div>
+        </div>
+        <div class="controls" style="align-items:center">
+          <button class="btn" id="simRerun" type="button">Re-run with a new learner</button>
+          <span class="smallnote mono" style="font-size:.68rem" id="simSeedNote"></span>
+        </div>
+        <p class="fig-note">The virtual learner is probabilistic: each card has a hidden difficulty; its true memory follows the stability model, and recall at each review succeeds with probability R — grades are then derived from how hard the recall felt. SM-2 sees only the grades, exactly like a real app. Two new cards are introduced per day for the first 15 days.</p>
+      </div>
+
+      <div id="paneManual" role="tabpanel" aria-labelledby="tabManual" hidden>
+        <div class="fig-head">
+          <span class="fig-title">Your session — six cards, graded by you, scheduled by SM-2</span>
+          <span class="chip model">Live SM-2</span>
+          <span class="fig-sub">the clock fast-forwards to the next due card</span>
+        </div>
+        <div class="cardwrap">
+          <div class="flashcard" id="fcCard">
+            <span class="cat" id="fcCat">–</span>
+            <div class="front" id="fcFront">–</div>
+            <div class="back" id="fcBack" hidden>–</div>
+            <div class="meta" id="fcMeta">–</div>
+            <div>
+              <button class="btn" id="fcReveal" type="button">Show answer</button>
+              <button class="btn ghost" id="fcReset" type="button">Reset session</button>
+            </div>
+            <div class="grades" id="fcGrades" hidden>
+              <button class="gbtn fail" data-q="0"><b>0</b><span>blackout</span></button>
+              <button class="gbtn fail" data-q="1"><b>1</b><span>wrong; recognized</span></button>
+              <button class="gbtn fail" data-q="2"><b>2</b><span>wrong; felt close</span></button>
+              <button class="gbtn pass" data-q="3"><b>3</b><span>hard recall</span></button>
+              <button class="gbtn pass" data-q="4"><b>4</b><span>hesitation</span></button>
+              <button class="gbtn pass" data-q="5"><b>5</b><span>perfect</span></button>
+            </div>
+          </div>
+          <div>
+            <div class="scrollbox" id="manTimeline"></div>
+            <table class="sm2t" id="manTable"><thead><tr>
+              <th>card</th><th class="num">reps</th><th class="num">EF</th><th class="num">interval</th><th class="num">due day</th>
+            </tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+        <p class="fig-note">Grades follow the original SM-2 scale: 0–2 are failures (interval resets to 1 day, repetition count restarts), 3–5 are passes. Hollow marks on the strip are each card's <em>next scheduled</em> review. Time between cards is simulated — grading a card jumps the clock to whenever the next card comes due.</p>
+      </div>
+    </div>
+  </div>
+  <div class="prose">
+    <p>SM-2's genius is economy: two numbers per card (ease and interval) and one honest confession — the algorithm doesn't model your memory at all. It models <em>your grades</em>. Modern successors like FSRS go further and fit the actual stability–retrievability curve from the hero section to your review history, per card, which is why they can do something SM-2 can't: let you pick a <strong>target retention</strong> and schedule backwards from it. Which raises the question that section 04 exists to answer.</p>
+  </div>
+</section>
+
+<!-- ================= 04 WORKLOAD ================= -->
+<section id="workload">
+  <div class="prose">
+    <p class="eyebrow"><span class="no">§ 04</span><span>The economics · retention is a dial with a price</span></p>
+    <h2>The workload cliff</h2>
+    <p>Every scheduler is implicitly choosing a point on one curve: <strong>how much do you want to remember, and how many reviews per day are you willing to pay for it?</strong> Higher target retention means reviewing every card while its recall odds are still high — shorter intervals, and (because reviews at high R strengthen memories less) slower interval growth on top. The cost compounds. Push the target from 90% toward 97% and watch the daily load climb; the last few percent are the expensive ones.</p>
+  </div>
+  <div class="wide">
+    <div class="fig">
+      <div class="fig-head">
+        <span class="fig-title">Daily review load over one year</span>
+        <span class="chip model">Model</span>
+        <span class="fig-sub">y-axis starts at zero · dashed reference = same deck at 90% target</span>
+      </div>
+      <div id="loadChart"></div>
+      <div class="tiles">
+        <div class="tile sig"><div class="k">Load at day 365</div><div class="v" id="ldEnd">–</div></div>
+        <div class="tile"><div class="k">vs 90% target</div><div class="v" id="ldVs">–</div></div>
+        <div class="tile"><div class="k">Time at 6 s/review</div><div class="v" id="ldMin">–</div></div>
+        <div class="tile"><div class="k">Cards added in year</div><div class="v" id="ldCards">–</div></div>
+      </div>
+      <div class="controls">
+        <div class="ctrl">
+          <label for="ldN">New cards per day · <span class="val" id="ldNv">20</span></label>
+          <input type="range" id="ldN" min="1" max="50" step="1" value="20" aria-label="New cards per day">
+        </div>
+        <div class="ctrl">
+          <label for="ldR">Target retention · <span class="val" id="ldRv">90%</span></label>
+          <input type="range" id="ldR" min="0.70" max="0.97" step="0.01" value="0.90" aria-label="Target retention">
+        </div>
+      </div>
+      <p class="fig-note">Deterministic expected-value simulation. Intervals are anchored to an SM-2-like ladder (1, 6, then ×2.5) at 90% retention, rescaled for other targets by <span class="mono">ln&nbsp;R*/ln&nbsp;0.9</span> (the exponential-decay relationship), with interval growth damped at high targets to reflect that reviews at high retrievability add less stability. Failed reviews (probability 1−R*) return the card to a 1-day interval. A toy, but the shape — and the cliff above ~93% — matches what FSRS simulations and long-suffering Anki users report.</p>
+    </div>
+  </div>
+  <div class="prose">
+    <p>Two practical readings of this chart. If your reviews feel endless, the cheapest fix is usually not "study harder" — it's lowering target retention a few points, or admitting the new-cards dial is set to a fantasy. And the reverse: retention below ~85% is a false economy, because the failure rate itself starts generating relearning reviews. For most people, most material, the flat part of the valley sits near <strong>85–92%</strong> — which is why 90% has been the default in this field for thirty years.</p>
+  </div>
+</section>
+
+<!-- ================= 05 TAKEAWAYS ================= -->
+<section id="takeaways">
+  <div class="prose">
+    <p class="eyebrow"><span class="no">§ 05</span><span>What to actually do with this</span></p>
+    <h2>Takeaways</h2>
+    <div class="takeaways">
+      <div class="tk"><div><h3>Forgetting is the default, not a failure.</h3>
+        <p>Ebbinghaus lost two-thirds of his perfectly-memorized lists in a day, and he was the most motivated learner in the history of the field. Any knowledge system that doesn't schedule re-exposure is a system for manufacturing the feeling of having learned.</p></div></div>
+      <div class="tk"><div><h3>Review at the sag, not at the peak.</h3>
+        <p>A review while recall is still easy is nearly wasted; a review just before the memory dies is maximally strengthening. Desirable difficulty is the mechanism, not a slogan — you saw it as the (1−R) term in every model above.</p></div></div>
+      <div class="tk"><div><h3>The schedule matters more than the software.</h3>
+        <p>SM-2 from 1987 captures most of the value: expanding intervals, per-card ease, reset on failure. FSRS refines the same two-component model. Switching apps buys you little; actually clearing your due queue buys you everything.</p></div></div>
+      <div class="tk"><div><h3>Choose retention like a budget, because it is one.</h3>
+        <p>Target retention is the one dial that sets your daily tax. 90% is the thirty-year default for a reason; 97% roughly doubles the bill for a difference you'll rarely notice. Spend the saved reviews on more material instead.</p></div></div>
+      <div class="tk"><div><h3>Fewer, better cards beat heroic schedules.</h3>
+        <p>Every model here assumed the card is atomic and well-formed. In practice, card quality moves your true stability more than any algorithm: one fact per card, cues that match how you'll need the memory, and delete without guilt. The curve forgives good cards.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="prose">
+    <p><strong>Sources &amp; honesty notes.</strong> Ebbinghaus, <em>Über das Gedächtnis</em> (1885) — savings data and the k/c fit are his published figures; Murre &amp; Dros, <em>Replication and Analysis of Ebbinghaus' Forgetting Curve</em>, PLOS ONE (2015). SM-2: P.&nbsp;Woźniak (1987), implemented here exactly as specified, including the EF floor of 1.3 and no EF change on failed grades. The exponential stability–retrievability framing follows the two-component model of memory used by SuperMemo and FSRS; the specific stability-gain and workload formulas on this page are illustrative toys, labeled <span class="mono">MODEL</span> wherever they appear.</p>
+    <p>Charts are hand-built SVG; everything runs locally in this page. Set your OS to dark mode, or use the theme button — the instruments recolor themselves.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+'use strict';
+/* ============ tiny SVG + utils ============ */
+var NS='http://www.w3.org/2000/svg';
+function E(tag,attrs,parent){var n=document.createElementNS(NS,tag);if(attrs)for(var k in attrs)n.setAttribute(k,attrs[k]);if(parent)parent.appendChild(n);return n;}
+function T(x,y,str,cls,parent,anchor){var t=E('text',{x:x,y:y,'class':cls||'ticktext'},parent);if(anchor)t.setAttribute('text-anchor',anchor);t.textContent=str;return t;}
+function clamp(v,a,b){return v<a?a:(v>b?b:v);}
+function fmt(v,d){return v.toFixed(d===undefined?1:d);}
+function pct(v,d){return (v*100).toFixed(d===undefined?0:d)+'%';}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ============ theme toggle ============ */
+var themeBtn=document.getElementById('themeBtn');
+var root=document.documentElement;
+function curTheme(){return root.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}
+function paintBtn(){themeBtn.textContent='theme: '+(root.dataset.theme||'auto');}
+themeBtn.addEventListener('click',function(){
+  root.dataset.theme=curTheme()==='dark'?'light':'dark';
+  paintBtn();
+  // charts use CSS custom properties in SVG classes, so they recolor natively;
+  // getComputedStyle read below verifies tokens resolved (and would let canvas repaint).
+  void getComputedStyle(root).getPropertyValue('--signal');
+});
+paintBtn();
+
+/* ============ shared tooltip ============ */
+var tip=document.getElementById('tip');
+function showTip(html,cx,cy){
+  tip.innerHTML=html;tip.style.display='block';
+  var w=tip.offsetWidth,h=tip.offsetHeight;
+  var x=clamp(cx+14,6,innerWidth-w-6),y=cy-h-12;if(y<6)y=cy+16;
+  tip.style.left=x+'px';tip.style.top=y+'px';
+}
+function hideTip(){tip.style.display='none';}
+
+/* ============ scroll reveal (respects reduced motion) ============ */
+if(matchMedia('(prefers-reduced-motion: no-preference)').matches&&'IntersectionObserver' in window){
+  var els=document.querySelectorAll('.fig,.tk');
+  els.forEach(function(el){el.classList.add('reveal-pending');});
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){e.target.classList.remove('reveal-pending');io.unobserve(e.target);}
+  });},{threshold:.08});
+  els.forEach(function(el){io.observe(el);});
+}
+
+/* ============================================================
+   HERO — draggable retrievability curve
+   ============================================================ */
+(function(){
+  var H={S:5,rev:7,cur:30};
+  var W=940,HT=350,ML=52,MR=22,MT=34,MB=42,PW=W-ML-MR,PH=HT-MT-MB,TMAX=60;
+  var box=document.getElementById('heroChart');
+  var X=function(t){return ML+t/TMAX*PW;},Y=function(r){return MT+(1-r)*PH;};
+  function S2(){var Rp=Math.exp(-H.rev/H.S);return H.S*(1+4*(1-Rp));}
+  function R(t){if(t<=H.rev)return Math.exp(-t/H.S);return Math.exp(-(t-H.rev)/S2());}
+  var svg=null,dragging=null;
+
+  function pathFrom(t0,t1,fn){
+    var d='',t;for(t=t0;t<=t1+1e-9;t+=0.25){d+=(d?'L':'M')+X(Math.min(t,t1)).toFixed(1)+' '+Y(fn(Math.min(t,t1))).toFixed(1);}
+    return d;
+  }
+  function render(){
+    box.textContent='';
+    svg=E('svg',{viewBox:'0 0 '+W+' '+HT,'class':'grabbable','aria-label':'Interactive retrievability curve'},box);
+    var i;
+    for(i=0;i<=4;i++){var yy=Y(i/4);E('line',{x1:ML,y1:yy,x2:W-MR,y2:yy,'class':'gridline'},svg);T(ML-8,yy+3.5,(i*25)+'%','ticktext',svg,'end');}
+    for(i=0;i<=60;i+=10){var xx=X(i);if(i>0)E('line',{x1:xx,y1:MT,x2:xx,y2:MT+PH,'class':'gridline'},svg);T(xx,MT+PH+16,''+i,'ticktext',svg,'middle');}
+    E('line',{x1:ML,y1:MT+PH,x2:W-MR,y2:MT+PH,'class':'axisline'},svg);
+    T(W-MR,MT+PH+30,'DAYS SINCE LEARNING','axtitle',svg,'end');
+    T(ML-38,MT-14,'RECALL PROBABILITY R','axtitle',svg);
+
+    // area under full curve
+    var area=pathFrom(0,H.rev,R)+'L'+X(H.rev).toFixed(1)+' '+Y(1).toFixed(1)+pathFrom(H.rev,TMAX,R).replace('M','L')+'L'+X(TMAX)+' '+Y(0)+'L'+X(0)+' '+Y(0)+'Z';
+    E('path',{d:area,'class':'area-sig'},svg);
+    // ghost: no-review continuation
+    E('path',{d:pathFrom(H.rev,TMAX,function(t){return Math.exp(-t/H.S);}),'class':'curve-ghost'},svg);
+    var gEnd=Math.exp(-TMAX/H.S);
+    T(X(TMAX)-4,Y(gEnd)-8,'no review','dlabel',svg,'end');
+    // curves
+    E('path',{d:pathFrom(0,H.rev,R),'class':'curve-sig'},svg);
+    E('path',{d:pathFrom(H.rev,TMAX,R),'class':'curve-sig'},svg);
+    // review flag
+    var rx=X(H.rev);
+    E('line',{x1:rx,y1:MT-6,x2:rx,y2:MT+PH,'class':'flagline'},svg);
+    E('path',{d:'M'+rx+' '+(MT-24)+'l0 14 12 -7z','class':'flaghead'},svg);
+    var revLbl=T(rx+16,MT-13,'review · day '+H.rev,'dlabel strong',svg);
+    if(H.rev>44){revLbl.setAttribute('text-anchor','end');revLbl.setAttribute('x',rx-8);}
+    // jump connector
+    E('line',{x1:rx,y1:Y(Math.exp(-H.rev/H.S)),x2:rx,y2:Y(1),'class':'hairv'},svg);
+    E('circle',{cx:rx,cy:Y(Math.exp(-H.rev/H.S)),r:3.5,'class':'dot-sig'},svg);
+    E('circle',{cx:rx,cy:Y(1),r:3.5,'class':'dot-alt'},svg);
+    // probe
+    var cx=X(H.cur),cr=R(H.cur);
+    E('line',{x1:cx,y1:MT,x2:cx,y2:MT+PH,'class':'hairv'},svg);
+    E('circle',{cx:cx,cy:Y(cr),r:9,fill:'none',stroke:'var(--signal)','stroke-width':1,opacity:.55},svg);
+    E('circle',{cx:cx,cy:Y(cr),r:5,'class':'dot-sig'},svg);
+    var pl=T(cx+12,Y(cr)-10,'day '+fmt(H.cur,H.cur%1?1:0)+' · R '+pct(cr),'dlabel sig',svg);
+    if(H.cur>46){pl.setAttribute('text-anchor','end');pl.setAttribute('x',cx-12);}
+    // readouts
+    document.getElementById('hRprobe').textContent=pct(cr,1);
+    document.getElementById('hS1').textContent=fmt(H.S,1)+' d';
+    document.getElementById('hRrev').textContent=pct(Math.exp(-H.rev/H.S),1);
+    var s2=S2();
+    document.getElementById('hS2').innerHTML=fmt(s2,1)+' d <small>(×'+fmt(s2/H.S,1)+')</small>';
+    document.getElementById('hSlv').textContent=fmt(H.S,1)+' d';
+    document.getElementById('hRevlv').textContent='day '+H.rev;
+    document.getElementById('hCurlv').textContent='day '+fmt(H.cur,H.cur%1?1:0);
+    // pointer interactions
+    svg.addEventListener('pointerdown',onDown);
+  }
+  function evtDay(ev){
+    var r=svg.getBoundingClientRect();
+    return clamp((ev.clientX-r.left)*(W/r.width)-ML,0,PW)/PW*TMAX;
+  }
+  function evtYfrac(ev){
+    var r=svg.getBoundingClientRect();
+    return (ev.clientY-r.top)*(HT/r.height);
+  }
+  function onDown(ev){
+    ev.preventDefault();
+    var d=evtDay(ev),yy=evtYfrac(ev);
+    dragging=(yy<MT+30&&Math.abs(d-H.rev)<8)?'rev':'cur';
+    onMove(ev);
+    window.addEventListener('pointermove',onMove);
+    window.addEventListener('pointerup',onUp,{once:true});
+  }
+  function onMove(ev){
+    var d=evtDay(ev);
+    if(dragging==='rev'){H.rev=Math.round(clamp(d,1,55));document.getElementById('hRevl').value=H.rev;}
+    else{H.cur=Math.round(clamp(d,0,60)*2)/2;document.getElementById('hCurl').value=H.cur;}
+    render();
+  }
+  function onUp(){window.removeEventListener('pointermove',onMove);dragging=null;}
+  document.getElementById('hSl').addEventListener('input',function(){H.S=+this.value;render();});
+  document.getElementById('hRevl').addEventListener('input',function(){H.rev=+this.value;render();});
+  document.getElementById('hCurl').addEventListener('input',function(){H.cur=+this.value;render();});
+  render();
+})();
+
+/* ============================================================
+   01 — EBBINGHAUS (log-time chart, real data)
+   ============================================================ */
+(function(){
+  // minutes, savings % — Über das Gedächtnis (1885), ch. VII
+  var DATA=[[20,58.2,'20 min'],[60,44.2,'1 h'],[526,35.8,'8.8 h'],[1440,33.7,'1 d'],[2880,27.8,'2 d'],[8640,25.4,'6 d'],[44640,21.1,'31 d']];
+  var W=940,HT=380,ML=52,MR=26,MT=30,MB=46,PW=W-ML-MR,PH=HT-MT-MB;
+  var L0=Math.log10(13),L1=Math.log10(70000);
+  var X=function(t){return ML+(Math.log10(t)-L0)/(L1-L0)*PW;},Y=function(p){return MT+(1-p/100)*PH;};
+  function ebbFit(t){var k=1.84,c=1.25;return 100*k/(Math.pow(Math.log10(t),c)+k);}
+  var Sexp=-1440/Math.log(0.337); // exponential through the 1-day point
+  var box=document.getElementById('ebbChart');
+  function render(){
+    box.textContent='';
+    var svg=E('svg',{viewBox:'0 0 '+W+' '+HT,'aria-label':'Ebbinghaus 1885 forgetting data'},box);
+    var i;
+    for(i=0;i<=5;i++){var yy=Y(i*20);E('line',{x1:ML,y1:yy,x2:W-MR,y2:yy,'class':'gridline'},svg);T(ML-8,yy+3.5,(i*20)+'%','ticktext',svg,'end');}
+    DATA.forEach(function(d){var xx=X(d[0]);E('line',{x1:xx,y1:MT+PH,x2:xx,y2:MT+PH+4,'class':'axisline'},svg);T(xx,MT+PH+17,d[2],'ticktext',svg,'middle');});
+    E('line',{x1:ML,y1:MT+PH,x2:W-MR,y2:MT+PH,'class':'axisline'},svg);
+    T(W-MR,MT+PH+33,'TIME SINCE LEARNING (LOG SCALE)','axtitle',svg,'end');
+    T(ML-38,MT-12,'SAVINGS ON RELEARNING','axtitle',svg);
+    // exponential ghost
+    var d1='',t,lt;
+    for(i=0;i<=240;i++){lt=L0+(L1-L0)*i/240;t=Math.pow(10,lt);d1+=(d1?'L':'M')+X(t).toFixed(1)+' '+Y(100*Math.exp(-t/Sexp)).toFixed(1);}
+    E('path',{d:d1,'class':'curve-ghost'},svg);
+    T(W-MR-4,Y(12),'single exponential e^(−t/S), fit to the 1-day point —','dlabel',svg,'end');
+    T(W-MR-4,Y(6.5),'too flat early, dead by a week','dlabel',svg,'end');
+    // ebbinghaus fit
+    var d2='';
+    for(i=0;i<=240;i++){lt=L0+(L1-L0)*i/240;t=Math.pow(10,lt);if(t<14)continue;d2+=(d2?'L':'M')+X(t).toFixed(1)+' '+Y(ebbFit(t)).toFixed(1);}
+    E('path',{d:d2,'class':'curve-sig'},svg);
+    T(X(4000),Y(ebbFit(4000))-12,'Ebbinghaus’s fitted law (1885)','dlabel sig',svg);
+    // data points, direct-labeled
+    DATA.forEach(function(d,idx){
+      var xx=X(d[0]),yy=Y(d[1]);
+      E('circle',{cx:xx,cy:yy,r:5,'class':'dot-data'},svg);
+      var above=(idx===0||idx===3);
+      T(xx+(idx===0?10:0),above?yy-11:yy+20,d[1].toFixed(1)+'%','dlabel strong',svg,idx===0?'start':'middle');
+      var hit=E('circle',{cx:xx,cy:yy,r:14,'class':'hit'},svg);
+      hit.addEventListener('pointerenter',function(ev){showTip('<b>'+d[2]+' after learning</b><br>savings '+d[1].toFixed(1)+'% · measured 1885',ev.clientX,ev.clientY);});
+      hit.addEventListener('pointermove',function(ev){showTip('<b>'+d[2]+' after learning</b><br>savings '+d[1].toFixed(1)+'% · measured 1885',ev.clientX,ev.clientY);});
+      hit.addEventListener('pointerleave',hideTip);
+    });
+    var lg=document.getElementById('ebbLegend');
+    lg.innerHTML='<span><span class="sw" style="background:var(--ink)"></span>measured savings (7 delays, 1885)</span>'+
+      '<span><span class="sw" style="background:var(--signal)"></span>his fit: b = 100k/((log t)^c + k), k=1.84, c=1.25</span>'+
+      '<span><span class="sw" style="background:var(--muted)"></span>single exponential (for contrast)</span>';
+  }
+  render();
+})();
+
+/* ============================================================
+   02 — SPACING EFFECT
+   ============================================================ */
+(function(){
+  var S0=2,HOR=60,W=940,HT=360,ML=52,MR=22,MT=30,MB=42,PW=W-ML-MR,PH=HT-MT-MB;
+  var X=function(t){return ML+t/HOR*PW;},Y=function(r){return MT+(1-r)*PH;};
+  var box=document.getElementById('spChart');
+  function schedule(g){
+    var t=[0],gap=2,i;
+    for(i=1;i<5;i++){t.push(Math.min(HOR-2,Math.round(t[i-1]+gap)));gap*=g;}
+    return t;
+  }
+  // piecewise curve given review days; returns {fn, Sfinal, auc}
+  // segment i uses the stability AFTER review i; each review resets R to 1
+  function build(revs){
+    var segs=[],S=S0,i;
+    for(i=0;i<revs.length;i++){
+      var st=revs[i],en=(i+1<revs.length)?revs[i+1]:HOR;
+      if(i>0){var Rpre=Math.exp(-(st-revs[i-1])/S);S=S*(1+4*(1-Rpre));}
+      segs.push({t0:st,t1:en,S:S});
+    }
+    function fn(t){
+      for(var j=segs.length-1;j>=0;j--)if(t>=segs[j].t0)return Math.exp(-(t-segs[j].t0)/segs[j].S);
+      return 1;
+    }
+    var auc=0,dt=0.1,t;
+    for(t=0;t<HOR;t+=dt)auc+=fn(t+dt/2)*dt;
+    return {fn:fn,S:segs[segs.length-1].S,auc:auc/HOR};
+  }
+  function curvePath(fn,revs){
+    var d='',t,i,stops=revs.concat([HOR]);
+    for(i=0;i<revs.length;i++){
+      for(t=stops[i];t<=stops[i+1]+1e-9;t+=0.2){var tt=Math.min(t,stops[i+1]);d+=((d&&t>stops[i])?'L':(i===0&&t===stops[0]?'M':'M'))+X(tt).toFixed(1)+' '+Y(fn(tt===stops[i+1]&&i+1<revs.length?tt-1e-6:tt)).toFixed(1);}
+    }
+    return d;
+  }
+  function areaPath(fn){
+    var d='M'+X(0)+' '+Y(0),t;
+    for(t=0;t<=HOR+1e-9;t+=0.2){var tt=Math.min(t,HOR);d+='L'+X(tt).toFixed(1)+' '+Y(fn(tt)).toFixed(1);}
+    return d+'L'+X(HOR)+' '+Y(0)+'Z';
+  }
+  function render(){
+    var g=+document.getElementById('spG').value;
+    var massed=[0,1,2,3,4],spaced=schedule(g);
+    var M=build(massed),Sp=build(spaced);
+    box.textContent='';
+    var svg=E('svg',{viewBox:'0 0 '+W+' '+HT,'aria-label':'Massed versus spaced review comparison'},box);
+    var i;
+    for(i=0;i<=4;i++){var yy=Y(i/4);E('line',{x1:ML,y1:yy,x2:W-MR,y2:yy,'class':'gridline'},svg);T(ML-8,yy+3.5,(i*25)+'%','ticktext',svg,'end');}
+    for(i=0;i<=60;i+=10){T(X(i),MT+PH+16,''+i,'ticktext',svg,'middle');}
+    E('line',{x1:ML,y1:MT+PH,x2:W-MR,y2:MT+PH,'class':'axisline'},svg);
+    T(W-MR,MT+PH+30,'DAYS','axtitle',svg,'end');
+    T(ML-38,MT-12,'RECALL PROBABILITY R','axtitle',svg);
+    E('path',{d:areaPath(M.fn),'class':'area-sig'},svg);
+    E('path',{d:areaPath(Sp.fn),'class':'area-alt'},svg);
+    E('path',{d:curvePath(M.fn,massed),'class':'curve-sig'},svg);
+    E('path',{d:curvePath(Sp.fn,spaced),'class':'curve-alt'},svg);
+    // review ticks
+    massed.forEach(function(t){E('line',{x1:X(t),y1:MT+PH+1,x2:X(t),y2:MT+PH-7,stroke:'var(--signal)','stroke-width':2.5},svg);});
+    spaced.forEach(function(t){E('line',{x1:X(t),y1:MT+PH+1,x2:X(t),y2:MT+PH-7,stroke:'var(--alt)','stroke-width':2.5,transform:'translate(0,-9)'},svg);});
+    // direct labels
+    var mEnd=M.fn(HOR),sEnd=Sp.fn(HOR);
+    T(X(22),Y(M.fn(22))-9,'massed · R '+pct(mEnd)+' at day 60','dlabel sig',svg,'start');
+    T(X(HOR)-6,Y(sEnd)-10,'spaced · R '+pct(sEnd)+' at day 60','dlabel alt',svg,'end');
+    T(X(5.2),MT+PH-14,'◂ 5 crammed reviews','dlabel sig',svg,'start');
+    // readouts
+    document.getElementById('spAUCm').textContent=pct(M.auc,1);
+    document.getElementById('spAUCs').textContent=pct(Sp.auc,1);
+    document.getElementById('spSfin').innerHTML=fmt(M.S,0)+' d <small>vs</small> '+fmt(Sp.S,0)+' d';
+    document.getElementById('spR60').innerHTML=pct(mEnd)+' <small>vs</small> '+pct(sEnd);
+    document.getElementById('spGv').textContent='×'+fmt(g,1);
+    document.getElementById('spSched').textContent='massed: d '+massed.join(', ')+'  ·  spaced: d '+spaced.join(', ');
+  }
+  document.getElementById('spG').addEventListener('input',render);
+  render();
+})();
+
+/* ============================================================
+   03 — SM-2 (shared core, deck, auto-sim, manual mode)
+   ============================================================ */
+var DECK=[
+  ['Capitals','Capital of Mongolia?','Ulaanbaatar'],
+  ['Capitals','Capital of Canada?','Ottawa'],
+  ['Capitals','Capital of Australia?','Canberra'],
+  ['Capitals','Capital of Türkiye?','Ankara'],
+  ['Capitals','Capital of Switzerland?','Bern (de facto)'],
+  ['Capitals','Capital of Brazil?','Brasília'],
+  ['Capitals','Capital of Kazakhstan?','Astana'],
+  ['Capitals','Capital of Morocco?','Rabat'],
+  ['Capitals','Capital of Vietnam?','Hanoi'],
+  ['Capitals','Capital of New Zealand?','Wellington'],
+  ['Etymology','“Salary” comes from…','Latin salārium — a Roman soldier’s salt allowance'],
+  ['Etymology','“Muscle” comes from…','Latin musculus, “little mouse” — a flexing bicep looks like one moving'],
+  ['Etymology','“Quarantine” comes from…','Venetian quaranta giorni — forty days ships waited in plague ports'],
+  ['Etymology','“Sarcasm” comes from…','Greek sarkazein, “to tear flesh”'],
+  ['Etymology','“Trivial” comes from…','Latin trivium, a three-way crossroads — where commonplace talk happens'],
+  ['Etymology','“Candidate” comes from…','Latin candidatus, “whitened” — Roman office-seekers wore chalk-white togas'],
+  ['Etymology','“Disaster” comes from…','Italian disastro, “ill-starred” (dis- + astro)'],
+  ['Etymology','“Companion” comes from…','Latin com + panis — one you share bread with'],
+  ['Etymology','“Vaccine” comes from…','Latin vacca, “cow” — Jenner’s cowpox inoculation, 1796'],
+  ['Etymology','“Robot” comes from…','Czech robota, “forced labor” — coined in Čapek’s R.U.R., 1920'],
+  ['Constants','Speed of light in vacuum?','299,792,458 m/s (exact, by definition of the metre)'],
+  ['Constants','Avogadro constant?','6.022 × 10²³ mol⁻¹'],
+  ['Constants','Euler’s number e ≈ ?','2.71828'],
+  ['Constants','Golden ratio φ ≈ ?','1.61803'],
+  ['Constants','Planck constant?','6.626 × 10⁻³⁴ J·s'],
+  ['Constants','Absolute zero in °C?','−273.15 °C'],
+  ['Constants','One astronomical unit ≈ ?','149.6 million km'],
+  ['Constants','Human genome length ≈ ?','≈ 3.1 billion base pairs'],
+  ['Constants','π to five decimals?','3.14159'],
+  ['Constants','Electron rest mass?','9.109 × 10⁻³¹ kg']
+];
+
+/* --- the real SM-2 update --- */
+function sm2Update(st,q){ // st:{ef,reps,ivl}
+  if(q>=3){
+    if(st.reps===0)st.ivl=1;
+    else if(st.reps===1)st.ivl=6;
+    else st.ivl=Math.round(st.ivl*st.ef);
+    st.reps+=1;
+    var ef=st.ef+(0.1-(5-q)*(0.08+(5-q)*0.02));
+    st.ef=ef<1.3?1.3:ef;
+  }else{
+    st.reps=0;st.ivl=1; // EF unchanged on failure, per the original algorithm
+  }
+  return st;
+}
+
+/* --- auto simulation --- */
+function simulateDeck(seed){
+  var rnd=mulberry32(seed),DAYS=180,events=[],cards=[];
+  DECK.forEach(function(c,i){
+    var d=1+((i*7)%14)/10; // hidden difficulty 1.0–2.3
+    cards.push({i:i,d:d,trueS:0.6+2.6/d,last:-1,due:Math.floor(i/2),ef:2.5,reps:0,ivl:0,lapses:0});
+  });
+  for(var day=0;day<DAYS;day++){
+    cards.forEach(function(c){
+      if(c.due!==day)return;
+      var q,R;
+      if(c.last<0){ // first exposure = learning
+        R=1;
+        q=rnd()<0.12?2:(c.d<1.4?5:(c.d<1.9?4:3));
+      }else{
+        var dt=day-c.last;
+        R=Math.exp(-dt/c.trueS);
+        if(rnd()<R){ q=R>0.9?(rnd()<0.5?5:4):(R>0.7?4:3); }
+        else{ q=R>0.5?2:(R>0.2?1:0); }
+      }
+      if(q>=3){ c.trueS*= 1+(4.4/c.d)*(1-R)+0.3*rnd(); }
+      else{ c.trueS=Math.max(0.4,c.trueS*0.3); c.lapses++; }
+      sm2Update(c,q);
+      events.push({c:c.i,day:day,q:q,ivl:c.ivl,ef:c.ef,R:R});
+      c.last=day;
+      c.due=day+c.ivl;
+    });
+  }
+  return {events:events,cards:cards};
+}
+
+/* --- pixel-timeline renderer (shared by auto + manual) --- */
+function renderTimeline(container,rows,days,events,nextDue,opts){
+  opts=opts||{};
+  var labelW=opts.labelW||168,cell=opts.cell||4.3,rowH=opts.rowH||15;
+  var W=labelW+days*cell+16,HT=rows.length*rowH+34;
+  container.textContent='';
+  var svg=E('svg',{viewBox:'0 0 '+W+' '+HT,'aria-label':'Review timeline',style:'min-width:'+Math.min(W,860)+'px'},container);
+  rows.forEach(function(r,ri){
+    var y=ri*rowH+6;
+    if(ri%2===0)E('rect',{x:labelW-6,y:y-1,width:days*cell+12,height:rowH,'class':'rowband'},svg);
+    var lbl=r.length>24?r.slice(0,23)+'…':r;
+    T(labelW-12,y+rowH/2+3,lbl,'ticktext',svg,'end');
+  });
+  var m;
+  for(m=0;m<=days;m+=30){
+    var x=labelW+m*cell;
+    E('line',{x1:x,y1:4,x2:x,y2:rows.length*rowH+8,'class':'gridline'},svg);
+    T(x,rows.length*rowH+24,'d'+m,'ticktext',svg,'middle');
+  }
+  events.forEach(function(e){
+    var cls=e.q>=4?'mk-good':(e.q===3?'mk-hard':'mk-lapse');
+    var x=labelW+e.day*cell-1.6,y=e.row*rowH+8;
+    E('rect',{x:x,y:y,width:3.4,height:rowH-5,rx:1.4,'class':'mk '+cls},svg);
+  });
+  (nextDue||[]).forEach(function(e){
+    if(e.day>days)return;
+    E('rect',{x:labelW+e.day*cell-2,y:e.row*rowH+8,width:4.4,height:rowH-5,rx:1.6,'class':'mk-next'},svg);
+  });
+  // hover
+  var byRow=[];events.forEach(function(e){(byRow[e.row]=byRow[e.row]||[]).push(e);});
+  svg.addEventListener('pointermove',function(ev){
+    var r=svg.getBoundingClientRect(),sx=W/r.width;
+    var px=(ev.clientX-r.left)*sx,py=(ev.clientY-r.top)*(HT/r.height);
+    var row=Math.floor((py-6)/rowH);
+    if(row<0||row>=rows.length||px<labelW){hideTip();return;}
+    var list=byRow[row];if(!list||!list.length){hideTip();return;}
+    var day=(px-labelW)/cell,best=null,bd=1e9;
+    list.forEach(function(e){var d=Math.abs(e.day-day);if(d<bd){bd=d;best=e;}});
+    if(best&&bd<6){
+      showTip('<b>'+rows[row]+'</b><br>day '+best.day+' · grade '+best.q+(best.q<3?' (lapse)':'')+'<br>next interval '+best.ivl+' d · EF '+best.ef.toFixed(2),ev.clientX,ev.clientY);
+    }else hideTip();
+  });
+  svg.addEventListener('pointerleave',hideTip);
+}
+
+/* --- auto-sim wiring --- */
+(function(){
+  var seed=20260709;
+  function run(){
+    var res=simulateDeck(seed);
+    var rows=DECK.map(function(c){return c[1].replace(/[?…]+$/,'');});
+    var evs=res.events.map(function(e){return {row:e.c,day:e.day,q:e.q,ivl:e.ivl,ef:e.ef};});
+    renderTimeline(document.getElementById('simTimeline'),rows,180,evs,[],{});
+    var tot=res.events.length,lap=0,retN=0,retD=0;
+    res.events.forEach(function(e){if(e.q<3)lap++;});
+    res.events.forEach(function(e){if(e.R<1){retD++;if(e.q>=3)retN++;}});
+    var efs=res.cards.map(function(c){return c.ef;});
+    var ivls=res.cards.map(function(c){return c.ivl;}).sort(function(a,b){return a-b;});
+    document.getElementById('simTot').textContent=tot;
+    document.getElementById('simRet').textContent=retD?pct(retN/retD,1):'–';
+    document.getElementById('simLap').textContent=lap;
+    document.getElementById('simEF').textContent=(efs.reduce(function(a,b){return a+b;},0)/efs.length).toFixed(2);
+    document.getElementById('simIvl').textContent=ivls[Math.floor(ivls.length/2)]+' d';
+    document.getElementById('simSeedNote').textContent='learner seed '+seed;
+    var lg=document.getElementById('simLegend');
+    lg.innerHTML='<span><span class="sw" style="background:var(--alt)"></span>pass, q ≥ 4</span>'+
+      '<span><span class="sw" style="background:var(--warn)"></span>hard pass, q = 3</span>'+
+      '<span><span class="sw" style="background:var(--lapse)"></span>lapse, q &lt; 3 — interval resets</span>';
+  }
+  document.getElementById('simRerun').addEventListener('click',function(){seed=(Math.random()*1e9)|0;run();});
+  run();
+})();
+
+/* --- tabs --- */
+(function(){
+  var ta=document.getElementById('tabAuto'),tm=document.getElementById('tabManual');
+  var pa=document.getElementById('paneAuto'),pm=document.getElementById('paneManual');
+  function sel(auto){
+    ta.setAttribute('aria-selected',auto?'true':'false');
+    tm.setAttribute('aria-selected',auto?'false':'true');
+    pa.hidden=!auto;pm.hidden=auto;
+  }
+  ta.addEventListener('click',function(){sel(true);});
+  tm.addEventListener('click',function(){sel(false);});
+})();
+
+/* --- manual mode --- */
+(function(){
+  var IDX=[2,10,15,19,20,25]; // Canberra, salary, candidate, robot, c, absolute zero
+  var state,curIdx,revealed;
+  function fresh(){
+    state=IDX.map(function(i){return {i:i,ef:2.5,reps:0,ivl:0,due:0,clock:0,events:[]};});
+    state.clock=0;curIdx=null;revealed=false;pick();paint();
+  }
+  function pick(){
+    var due=null,minDue=1e9,j;
+    for(j=0;j<state.length;j++){
+      if(state[j].due<=state.clock&&(due===null||state[j].due<state[due].due)){due=j;}
+      if(state[j].due<minDue)minDue=state[j].due;
+    }
+    if(due===null){state.clock=minDue;for(j=0;j<state.length;j++){if(state[j].due<=state.clock){due=j;break;}}}
+    curIdx=due;revealed=false;
+  }
+  function paint(){
+    var c=state[curIdx],card=DECK[c.i];
+    document.getElementById('fcCat').textContent=card[0]+' · simulated day '+state.clock;
+    document.getElementById('fcFront').textContent=card[1];
+    var back=document.getElementById('fcBack');back.textContent=card[2];back.hidden=!revealed;
+    document.getElementById('fcGrades').hidden=!revealed;
+    document.getElementById('fcReveal').hidden=revealed;
+    document.getElementById('fcMeta').textContent='reps '+c.reps+' · EF '+c.ef.toFixed(2)+' · last interval '+(c.ivl||'–')+(c.ivl?' d':'');
+    // table
+    var tb=document.querySelector('#manTable tbody');tb.textContent='';
+    state.forEach(function(s,si){
+      var tr=document.createElement('tr');
+      var name=DECK[s.i][1].replace(/[?…]+$/,'');
+      tr.innerHTML='<td>'+(si===curIdx?'▸ ':'')+name+'</td><td class="num">'+s.reps+'</td><td class="num">'+s.ef.toFixed(2)+'</td><td class="num">'+(s.ivl||'–')+'</td><td class="num">'+s.due+'</td>';
+      tb.appendChild(tr);
+    });
+    // strip
+    var rows=state.map(function(s){return DECK[s.i][1].replace(/[?…]+$/,'');});
+    var evs=[],next=[],maxd=30;
+    state.forEach(function(s,si){
+      s.events.forEach(function(e){evs.push({row:si,day:e.day,q:e.q,ivl:e.ivl,ef:e.ef});maxd=Math.max(maxd,e.day);});
+      next.push({row:si,day:s.due});maxd=Math.max(maxd,Math.min(s.due,120));
+    });
+    var days=Math.min(150,Math.max(30,Math.ceil(maxd/30)*30));
+    renderTimeline(document.getElementById('manTimeline'),rows,days,evs,next,{cell:Math.max(3.4,620/days),labelW:150,rowH:17});
+  }
+  document.getElementById('fcReveal').addEventListener('click',function(){revealed=true;paint();});
+  document.getElementById('fcReset').addEventListener('click',fresh);
+  document.getElementById('fcGrades').addEventListener('click',function(ev){
+    var b=ev.target.closest('button');if(!b||!revealed)return;
+    var q=+b.dataset.q,c=state[curIdx];
+    sm2Update(c,q);
+    c.events.push({day:state.clock,q:q,ivl:c.ivl,ef:c.ef});
+    c.due=state.clock+c.ivl;
+    pick();paint();
+  });
+  fresh();
+})();
+
+/* ============================================================
+   04 — WORKLOAD CLIFF
+   ============================================================ */
+(function(){
+  function intervals(R){
+    var base=[1,6],i;while(base.length<18)base.push(Math.round(base[base.length-1]*2.5));
+    var s=Math.log(R)/Math.log(0.9);
+    // damp interval growth at high targets: reviews at high R add less stability
+    var damp=Math.pow((1-R)/0.1,0.55);
+    var out=[],prev=0;
+    for(i=0;i<base.length;i++){
+      var v=i<2?base[i]*s:prev*(1+1.5*damp);
+      v=Math.max(1,Math.round(Math.max(v,i<2?1:prev+1)));
+      out.push(v);prev=v;
+    }
+    return out;
+  }
+  function simulate(N,R,days){
+    var I=intervals(R),K=I.length,horizon=days+700;
+    var due=new Array(horizon);for(var d=0;d<horizon;d++)due[d]=null;
+    function add(day,k,m){if(day>=horizon)return;if(!due[day])due[day]=new Float64Array(K);due[day][k]+=m;}
+    var load=new Float64Array(days);
+    for(d=0;d<days;d++){
+      add(d,0,N);
+      var slot=due[d];if(!slot)continue;
+      var tot=0;
+      for(var k=0;k<K;k++){
+        var m=slot[k];if(!m)continue;tot+=m;
+        add(d+I[k],Math.min(k+1,K-1),m*R);
+        add(d+1,0,m*(1-R));
+      }
+      load[d]=tot;
+    }
+    return load;
+  }
+  var W=940,HT=360,ML=58,MR=24,MT=30,MB=42,PW=W-ML-MR,PH=HT-MT-MB,DAYS=365;
+  var box=document.getElementById('loadChart');
+  function render(){
+    var N=+document.getElementById('ldN').value,R=+document.getElementById('ldR').value;
+    var load=simulate(N,R,DAYS),ref=simulate(N,0.90,DAYS);
+    var ymax=Math.max.apply(null,[].slice.call(load).concat([].slice.call(ref)))*1.12;
+    ymax=Math.max(10,Math.ceil(ymax/25)*25);
+    var X=function(d){return ML+d/DAYS*PW;},Y=function(v){return MT+(1-v/ymax)*PH;};
+    box.textContent='';
+    var svg=E('svg',{viewBox:'0 0 '+W+' '+HT,'aria-label':'Daily review load over one year'},box);
+    var i,step=ymax/5;
+    for(i=0;i<=5;i++){var yy=Y(i*step);E('line',{x1:ML,y1:yy,x2:W-MR,y2:yy,'class':'gridline'},svg);T(ML-8,yy+3.5,String(Math.round(i*step)),'ticktext',svg,'end');}
+    for(i=0;i<=360;i+=60){T(X(i),MT+PH+16,''+i,'ticktext',svg,'middle');}
+    E('line',{x1:ML,y1:MT+PH,x2:W-MR,y2:MT+PH,'class':'axisline'},svg);
+    T(W-MR,MT+PH+30,'DAYS FROM STARTING THE DECK','axtitle',svg,'end');
+    T(ML-44,MT-12,'REVIEWS / DAY (BASELINE = 0)','axtitle',svg);
+    function pathOf(arr){var d='',j;for(j=0;j<DAYS;j++)d+=(d?'L':'M')+X(j).toFixed(1)+' '+Y(arr[j]).toFixed(1);return d;}
+    // area for current setting
+    E('path',{d:pathOf(load)+'L'+X(DAYS-1)+' '+Y(0)+'L'+X(0)+' '+Y(0)+'Z','class':'area-sig'},svg);
+    if(Math.abs(R-0.90)>0.001){
+      var rp=E('path',{d:pathOf(ref),'class':'curve-ghost'},svg);rp.setAttribute('stroke-dasharray','5 4');
+      T(X(DAYS-1)-4,Y(ref[DAYS-1])+(load[DAYS-1]>ref[DAYS-1]?16:-8),'90% target · '+Math.round(ref[DAYS-1])+'/day','dlabel',svg,'end');
+    }
+    E('path',{d:pathOf(load),'class':'curve-sig'},svg);
+    E('circle',{cx:X(DAYS-1),cy:Y(load[DAYS-1]),r:4.5,'class':'dot-sig'},svg);
+    T(X(DAYS-1)-4,Y(load[DAYS-1])-10,pct(R)+' target · '+Math.round(load[DAYS-1])+'/day','dlabel sig',svg,'end');
+    // hover
+    var hit=E('rect',{x:ML,y:MT,width:PW,height:PH,'class':'hit'},svg);
+    hit.addEventListener('pointermove',function(ev){
+      var r=svg.getBoundingClientRect();var d=Math.round(clamp((ev.clientX-r.left)*(W/r.width)-ML,0,PW)/PW*(DAYS-1));
+      showTip('<b>day '+d+'</b><br>'+pct(R)+' target: '+Math.round(load[d])+' reviews<br>90% target: '+Math.round(ref[d])+' reviews',ev.clientX,ev.clientY);
+    });
+    hit.addEventListener('pointerleave',hideTip);
+    // readouts
+    var end=load[DAYS-1],rend=ref[DAYS-1];
+    document.getElementById('ldEnd').textContent=Math.round(end)+' rev';
+    document.getElementById('ldVs').textContent=(end/rend>=1?'+':'−')+Math.abs(Math.round((end/rend-1)*100))+'%';
+    document.getElementById('ldMin').textContent=Math.round(end*6/60)+' min/d';
+    document.getElementById('ldCards').textContent=(N*DAYS).toLocaleString('en-US');
+    document.getElementById('ldNv').textContent=N;
+    document.getElementById('ldRv').textContent=pct(R);
+  }
+  document.getElementById('ldN').addEventListener('input',render);
+  document.getElementById('ldR').addEventListener('input',render);
+  render();
+})();
+
+})();
+</script>

@@ -1,0 +1,1429 @@
+<title>OKF Playground</title>
+<style>
+/* ── Tokens ─────────────────────────────────────────────────────────── */
+:root{
+  --ground:#EFF1EC;
+  --panel:#FBFCFA;
+  --panel2:#F3F5EF;
+  --ink:#232B2A;
+  --muted:#64706B;
+  --line:#D8DDD3;
+  --line-soft:#E4E8DF;
+  --accent:#257A67;
+  --accent-soft:rgba(37,122,103,.10);
+  --ochre:#A26A1D;
+  --blue:#3D6C9E;
+  --red:#B5473E;
+  --red-soft:rgba(181,71,62,.10);
+  --hl:rgba(37,122,103,.08);
+  --chip-on:#257A67;
+  --chip-on-ink:#F4FAF7;
+  --shadow:0 1px 2px rgba(24,32,28,.06), 0 4px 14px rgba(24,32,28,.05);
+  --sans:"Seravek","Avenir Next","Trebuchet MS","Segoe UI",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code","Source Code Pro",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ground:#14181A;
+    --panel:#1C2225;
+    --panel2:#181E20;
+    --ink:#D8DFD9;
+    --muted:#8B968E;
+    --line:#2C3438;
+    --line-soft:#242C2F;
+    --accent:#52B399;
+    --accent-soft:rgba(82,179,153,.13);
+    --ochre:#D2A05C;
+    --blue:#82AEDB;
+    --red:#E08377;
+    --red-soft:rgba(224,131,119,.12);
+    --hl:rgba(82,179,153,.10);
+    --chip-on:#2E8871;
+    --chip-on-ink:#EAF6F1;
+    --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 16px rgba(0,0,0,.22);
+  }
+}
+:root[data-theme="light"]{
+  --ground:#EFF1EC; --panel:#FBFCFA; --panel2:#F3F5EF; --ink:#232B2A;
+  --muted:#64706B; --line:#D8DDD3; --line-soft:#E4E8DF;
+  --accent:#257A67; --accent-soft:rgba(37,122,103,.10);
+  --ochre:#A26A1D; --blue:#3D6C9E; --red:#B5473E; --red-soft:rgba(181,71,62,.10);
+  --hl:rgba(37,122,103,.08); --chip-on:#257A67; --chip-on-ink:#F4FAF7;
+  --shadow:0 1px 2px rgba(24,32,28,.06), 0 4px 14px rgba(24,32,28,.05);
+}
+:root[data-theme="dark"]{
+  --ground:#14181A; --panel:#1C2225; --panel2:#181E20; --ink:#D8DFD9;
+  --muted:#8B968E; --line:#2C3438; --line-soft:#242C2F;
+  --accent:#52B399; --accent-soft:rgba(82,179,153,.13);
+  --ochre:#D2A05C; --blue:#82AEDB; --red:#E08377; --red-soft:rgba(224,131,119,.12);
+  --hl:rgba(82,179,153,.10); --chip-on:#2E8871; --chip-on-ink:#EAF6F1;
+  --shadow:0 1px 2px rgba(0,0,0,.25), 0 4px 16px rgba(0,0,0,.22);
+}
+
+/* ── Base ───────────────────────────────────────────────────────────── */
+*{box-sizing:border-box}
+html{background:var(--ground)}
+body{margin:0}
+.page{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--ground);
+  line-height:1.55;
+  min-height:100vh;
+  padding:0 20px 72px;
+}
+.wrap{max-width:1240px;margin:0 auto}
+code,kbd,pre,textarea{font-family:var(--mono)}
+code{font-size:.92em;background:var(--panel2);border:1px solid var(--line-soft);border-radius:4px;padding:.05em .3em}
+a{color:var(--accent)}
+h1,h2,h3,h4{text-wrap:balance;line-height:1.2;margin:0}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition:none !important;animation:none !important}
+}
+
+.eyebrow{
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 .5rem;
+}
+.section-eyebrow{
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 .35rem;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.top{padding:44px 0 10px}
+.top h1{font-size:clamp(1.7rem,3.4vw,2.4rem);font-weight:650;letter-spacing:-.015em}
+.top .lede{max-width:62ch;color:var(--muted);margin:.7rem 0 0;font-size:1.02rem}
+.top .meta{
+  font-family:var(--mono);font-size:.75rem;color:var(--muted);
+  margin:.9rem 0 0;display:flex;gap:1.1em;flex-wrap:wrap;
+}
+.top .meta span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--accent);margin-right:.55em;vertical-align:.08em}
+
+/* ── OKF explainer strip ───────────────────────────────────────────── */
+.okf-strip{
+  margin:26px 0 0;border:1px solid var(--line);border-radius:10px;
+  background:var(--panel);box-shadow:var(--shadow);
+  display:grid;grid-template-columns:200px 1fr 1fr 1fr;overflow:hidden;
+}
+.okf-strip>div{padding:16px 18px;border-left:1px solid var(--line-soft)}
+.okf-strip>div:first-child{border-left:none;background:var(--panel2)}
+.okf-strip h2{font-size:1rem;font-weight:650}
+.okf-strip .cell-k{
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 .3rem;
+}
+.okf-strip p{margin:0;font-size:.87rem;color:var(--muted)}
+.okf-strip .spec{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-top:.5rem}
+@media (max-width:980px){.okf-strip{grid-template-columns:1fr 1fr}.okf-strip>div:first-child{grid-column:1/-1}}
+@media (max-width:620px){.okf-strip{grid-template-columns:1fr}.okf-strip>div{border-left:none;border-top:1px solid var(--line-soft)}}
+
+/* ── Sections ───────────────────────────────────────────────────────── */
+section.block{margin-top:46px}
+section.block>header{margin-bottom:16px;max-width:74ch}
+section.block h2{font-size:1.25rem;font-weight:650}
+section.block>header p{color:var(--muted);margin:.45rem 0 0;font-size:.93rem}
+
+/* ── Toolbar ────────────────────────────────────────────────────────── */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin-bottom:12px}
+.preset-group{display:flex;flex-wrap:wrap;gap:6px}
+.preset-btn{
+  border:1px solid var(--line);background:var(--panel);border-radius:7px;
+  padding:6px 12px;font-size:.85rem;cursor:pointer;color:var(--ink);
+  transition:border-color .15s, background .15s;
+}
+.preset-btn:hover{border-color:var(--accent)}
+.preset-btn[aria-pressed="true"]{
+  background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600;
+}
+.field{display:flex;flex-direction:column;gap:4px}
+.field>label{font-family:var(--mono);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.field input[type="text"]{
+  border:1px solid var(--line);background:var(--panel);border-radius:7px;
+  padding:6px 10px;font-family:var(--mono);font-size:.83rem;min-width:0;
+}
+.field input[type="text"]:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 2px var(--accent-soft)}
+.fn-field{flex:1 1 320px}
+.fn-field input{width:100%}
+
+/* ── Panes ──────────────────────────────────────────────────────────── */
+.panes{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:920px){.panes{grid-template-columns:1fr}}
+.pane{
+  border:1px solid var(--line);border-radius:10px;background:var(--panel);
+  box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;
+}
+.pane-head{
+  display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:9px 14px;border-bottom:1px solid var(--line-soft);background:var(--panel2);
+}
+.pane-head .pane-title{
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink);font-weight:600;white-space:nowrap;
+}
+.pane-head .path{
+  font-family:var(--mono);font-size:.72rem;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:right;
+}
+.editor{display:grid;grid-template-columns:52px 1fr;height:clamp(340px,54vh,560px)}
+.gutter{
+  overflow:hidden;background:var(--panel2);border-right:1px solid var(--line-soft);
+  user-select:none;
+}
+.gutter pre{
+  margin:0;padding:12px 8px 12px 0;text-align:right;color:var(--muted);
+  font-size:.8rem;line-height:1.5;font-variant-numeric:tabular-nums;opacity:.75;
+}
+.editor textarea{
+  border:0;background:transparent;resize:none;padding:12px 14px;margin:0;
+  font-size:.8rem;line-height:1.5;white-space:pre;overflow:auto;color:var(--ink);
+  width:100%;height:100%;
+}
+.editor textarea:focus{outline:none;background:var(--hl)}
+.outwrap{overflow:auto;height:clamp(340px,54vh,560px)}
+pre.note-out{margin:0;padding:12px 14px;font-size:.8rem;line-height:1.5;min-width:max-content}
+
+/* YAML tinting */
+.y-delim{color:var(--muted);opacity:.7}
+.y-key{color:var(--accent);font-weight:600}
+.y-str{color:var(--ochre)}
+.y-scalar{color:var(--blue)}
+.y-num{color:var(--blue);font-variant-numeric:tabular-nums}
+.y-dash{color:var(--muted)}
+.b-h{color:var(--ink);font-weight:600}
+.b-dim{color:var(--muted)}
+.fmline{display:inline-block;width:100%;border-left:2px solid transparent;margin-left:-8px;padding-left:6px;cursor:help;transition:background .15s,border-color .15s}
+.fmline:hover{background:var(--hl)}
+.fmline.pinned{background:var(--hl);border-left-color:var(--accent)}
+.pane-note{
+  border-top:1px dashed var(--line);padding:7px 14px;font-size:.76rem;
+  font-family:var(--mono);color:var(--muted);background:var(--panel2);
+}
+.pane-note b{color:var(--ochre);font-weight:600}
+
+/* ── Inspector ──────────────────────────────────────────────────────── */
+.inspector{
+  margin-top:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);
+  box-shadow:var(--shadow);padding:14px 18px;min-height:118px;
+}
+.inspector .insp-head{
+  display:flex;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap;
+}
+.inspector h3{font-size:.95rem;font-weight:650}
+.inspector .insp-ref{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.inspector .insp-pin{font-family:var(--mono);font-size:.68rem;color:var(--accent);margin-left:auto}
+.inspector .insp-body{font-size:.88rem;color:var(--ink);max-width:96ch}
+.inspector .insp-body p{margin:.35rem 0}
+.inspector .insp-body ul{margin:.35rem 0;padding-left:1.3em}
+.inspector .insp-body li{margin:.12rem 0;font-size:.84rem}
+.inspector .quote{
+  font-family:var(--mono);font-size:.78rem;background:var(--panel2);
+  border:1px solid var(--line-soft);border-left:2px solid var(--accent);
+  border-radius:5px;padding:6px 10px;margin:.5rem 0;overflow-x:auto;white-space:pre;
+}
+.insp-muted{color:var(--muted)}
+.insp-warn{color:var(--red)}
+.insp-ok{color:var(--accent)}
+
+/* ── Tag lab ────────────────────────────────────────────────────────── */
+.lab-grid{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:18px;align-items:start}
+@media (max-width:980px){.lab-grid{grid-template-columns:1fr}}
+.card{
+  border:1px solid var(--line);border-radius:10px;background:var(--panel);
+  box-shadow:var(--shadow);padding:16px 18px;
+}
+.card h3{font-size:.78rem;font-family:var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px}
+.ctl-row{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.ctl-row>label,.ctl-label{font-size:.85rem;font-weight:600}
+.ctl-row .hint{font-size:.76rem;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;width:max-content}
+.seg button{
+  border:0;background:transparent;padding:6px 16px;font-size:.85rem;font-family:var(--mono);
+  cursor:pointer;color:var(--muted);transition:background .15s,color .15s;
+}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--chip-on);color:var(--chip-on-ink);font-weight:600}
+.range-row{display:flex;align-items:center;gap:12px}
+.range-row input[type="range"]{flex:1;accent-color:var(--accent);min-width:0}
+.range-row output{
+  font-family:var(--mono);font-size:.95rem;font-weight:600;min-width:2ch;text-align:right;
+  font-variant-numeric:tabular-nums;color:var(--accent);
+}
+.range-row.dim output{color:var(--muted)}
+.ctl-row.dim{opacity:.45;transition:opacity .2s}
+
+/* rules editor */
+.rules-list{display:flex;flex-direction:column;gap:6px}
+.rule-row{display:grid;grid-template-columns:110px 1fr 26px;gap:6px;align-items:center}
+.rule-row input{
+  border:1px solid var(--line);background:var(--panel2);border-radius:6px;
+  padding:4px 8px;font-family:var(--mono);font-size:.76rem;min-width:0;
+}
+.rule-row input:focus{border-color:var(--accent);outline:none}
+.rule-x{
+  border:1px solid transparent;background:transparent;color:var(--muted);border-radius:6px;
+  cursor:pointer;font-size:.9rem;line-height:1;padding:4px 0;
+}
+.rule-x:hover{color:var(--red);border-color:var(--line)}
+.rule-add{
+  margin-top:8px;border:1px dashed var(--line);background:transparent;border-radius:7px;
+  padding:5px 12px;font-size:.8rem;color:var(--muted);cursor:pointer;
+}
+.rule-add:hover{color:var(--accent);border-color:var(--accent)}
+.rules-cols{
+  display:grid;grid-template-columns:110px 1fr 26px;gap:6px;margin-bottom:4px;
+  font-family:var(--mono);font-size:.64rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+}
+
+/* verdict */
+.verdict{
+  display:flex;flex-wrap:wrap;gap:10px 26px;align-items:baseline;
+  padding:12px 16px;margin-bottom:14px;border:1px solid var(--line);
+  border-radius:10px;background:var(--panel2);
+}
+.verdict .v-item{display:flex;align-items:baseline;gap:8px}
+.verdict .v-num{font-family:var(--mono);font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums}
+.verdict .v-num.any{color:var(--red)}
+.verdict .v-num.topn{color:var(--accent)}
+.verdict .v-lab{font-size:.78rem;color:var(--muted);max-width:20ch;line-height:1.25}
+.verdict .v-note{font-size:.8rem;color:var(--muted);margin-left:auto;max-width:34ch}
+.verdict .v-note b{color:var(--ink)}
+
+/* bars */
+.lab-axis,.lab-row{display:grid;grid-template-columns:112px 1fr 44px 190px;gap:0 12px;align-items:center}
+@media (max-width:560px){.lab-axis,.lab-row{grid-template-columns:84px 1fr 34px 120px}}
+.lab-axis{height:26px;font-family:var(--mono);font-size:.65rem;color:var(--muted)}
+.axis-track{position:relative;height:100%}
+.axis-tick{position:absolute;bottom:2px;transform:translateX(-50%);font-variant-numeric:tabular-nums}
+.axis-th-label{
+  position:absolute;top:-4px;transform:translateX(-50%);color:var(--ochre);
+  font-weight:600;white-space:nowrap;transition:left .25s ease;
+}
+.lab-rows{position:relative;display:flex;flex-direction:column;gap:6px}
+.lab-row{height:34px}
+.lab-tag{font-family:var(--mono);font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lab-track{position:relative;height:18px;background:var(--panel2);border-radius:4px;border:1px solid var(--line-soft)}
+.lab-bar{
+  position:absolute;inset:2px auto 2px 2px;border-radius:3px;background:var(--accent);
+  transition:width .35s ease, background .25s ease, opacity .25s ease;min-width:0;
+}
+.lab-th{
+  position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed var(--ochre);
+  opacity:.8;transition:left .25s ease;
+}
+.lab-hits{font-family:var(--mono);font-size:.82rem;font-variant-numeric:tabular-nums;text-align:right}
+.lab-note{font-size:.72rem;font-family:var(--mono);line-height:1.25}
+.lab-row[data-status="kept"] .lab-note{color:var(--accent)}
+.lab-row[data-status="kept"] .lab-tag{font-weight:700}
+.lab-row[data-status="undermin"] .lab-bar{background:var(--ochre);opacity:.75}
+.lab-row[data-status="undermin"] .lab-note{color:var(--ochre)}
+.lab-row[data-status="outranked"] .lab-bar,
+.lab-row[data-status="noisy"] .lab-bar{background:var(--red);opacity:.55}
+.lab-row[data-status="outranked"] .lab-note{color:var(--red)}
+.lab-row[data-status="noisy"] .lab-note{color:var(--red)}
+.lab-row[data-status="anykept"] .lab-note{color:var(--accent)}
+.lab-row[data-status="zero"]{opacity:.5}
+.lab-row[data-status="zero"] .lab-note{color:var(--muted)}
+.lab-cutoff{
+  position:absolute;left:0;right:0;height:0;border-top:2px solid var(--red);
+  transition:top .25s ease, opacity .25s ease;pointer-events:none;
+}
+.lab-cutoff::after{
+  content:attr(data-label);position:absolute;right:0;top:-9px;
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;color:var(--red);
+  background:var(--panel);padding:0 6px;border:1px solid var(--red);border-radius:99px;
+  transform:translateY(-50%);
+}
+.lab-foot{margin-top:14px;font-size:.76rem;color:var(--muted);font-family:var(--mono)}
+.lab-foot b{color:var(--ochre)}
+
+/* chips */
+.chips-block{margin-top:16px;border-top:1px dashed var(--line);padding-top:12px}
+.chips-label{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;min-height:30px}
+.chip{
+  font-family:var(--mono);font-size:.76rem;border-radius:99px;padding:4px 12px;
+  border:1px solid var(--line);transition:background .3s,color .3s,border-color .3s,opacity .3s,transform .3s;
+  font-variant-numeric:tabular-nums;
+}
+.chip.on{background:var(--chip-on);color:var(--chip-on-ink);border-color:var(--chip-on)}
+.chip.static{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);border-style:dashed}
+.chip.off{color:var(--red);border-color:var(--red);background:var(--red-soft);text-decoration:line-through;opacity:.85;transform:scale(.96)}
+.chip.gone{opacity:0;transform:scale(.8);padding:4px 0;border-width:0;width:0;overflow:hidden;white-space:nowrap}
+
+/* ── Config section ────────────────────────────────────────────────── */
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+@media (max-width:920px){.cfg-grid{grid-template-columns:1fr}}
+.cfg-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+@media (max-width:560px){.cfg-fields{grid-template-columns:1fr}}
+.cfg-fields .field.wide{grid-column:1/-1}
+.check-row{display:flex;align-items:center;gap:8px;grid-column:1/-1;font-size:.85rem}
+.check-row input{accent-color:var(--accent);width:15px;height:15px}
+.cfg-preview{overflow:auto;max-height:430px;border:1px solid var(--line-soft);border-radius:8px;background:var(--panel2)}
+.cfg-preview pre{margin:0;padding:12px 14px;font-size:.76rem;line-height:1.5;min-width:max-content}
+.cfg-note{font-size:.78rem;color:var(--muted);margin-top:10px;max-width:70ch}
+
+/* ── Footer ────────────────────────────────────────────────────────── */
+.foot{
+  margin-top:56px;border-top:1px solid var(--line);padding-top:18px;
+  font-size:.8rem;color:var(--muted);max-width:88ch;
+}
+.foot code{font-size:.85em}
+</style>
+
+<div class="page"><div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">okf-secondbrain-updater / interactive companion</p>
+  <h1>OKF Playground</h1>
+  <p class="lede">Watch a plain markdown note become an Open Knowledge Format v0.1 note, exactly the way
+  <code>okf_sync.py</code> would write it into your Obsidian vault. Every extraction rule on this page is the
+  tool's actual logic, ported line-for-line from the Python source — including the quirks.</p>
+  <div class="meta">
+    <span>Python 3.10+, stdlib only</span>
+    <span>OKF v0.1 (GoogleCloudPlatform/knowledge-catalog)</span>
+    <span>keyword mode shown — the <code>--no-llm</code> path</span>
+  </div>
+</header>
+
+<section class="okf-strip" aria-label="What is OKF">
+  <div>
+    <h2>What is OKF?</h2>
+    <p class="spec">Open Knowledge Format, v0.1</p>
+  </div>
+  <div>
+    <p class="cell-k">Plain files</p>
+    <p>A note is one markdown file with YAML frontmatter. No SDK, no schema server — it works in Obsidian, git, and <code>grep</code> alike.</p>
+  </div>
+  <div>
+    <p class="cell-k">Human-readable, agent-parseable</p>
+    <p>This tool writes six owned keys — <code>type</code>, <code>title</code>, <code>description</code>, <code>resource</code>, <code>tags</code>, <code>timestamp</code> — readable without tooling, parseable with any YAML parser.</p>
+  </div>
+  <div>
+    <p class="cell-k">Extension-safe</p>
+    <p>OKF requires consumers to tolerate and preserve unknown frontmatter keys. The sync tool only ever touches fields it owns — bring your own extensions freely.</p>
+  </div>
+</section>
+
+<!-- ── Playground ─────────────────────────────────────────────────── -->
+<section class="block" id="playground">
+  <header>
+    <p class="section-eyebrow">source → note</p>
+    <h2>The playground</h2>
+    <p>Edit the source on the left; the OKF note the tool would write appears on the right.
+    Hover any frontmatter line to see exactly which rule produced it — click to pin the explanation.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="preset-group" id="presets" role="group" aria-label="Example notes"></div>
+    <div class="field fn-field">
+      <label for="fnInput">filename (relative to source_dir)</label>
+      <input type="text" id="fnInput" spellcheck="false" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="panes">
+    <div class="pane">
+      <div class="pane-head">
+        <span class="pane-title">Source</span>
+        <span class="path" id="srcPath"></span>
+      </div>
+      <div class="editor">
+        <div class="gutter" aria-hidden="true"><pre id="gutter">1</pre></div>
+        <textarea id="src" spellcheck="false" aria-label="Markdown source note" wrap="off"></textarea>
+      </div>
+      <div class="pane-note" id="srcNote" hidden></div>
+    </div>
+    <div class="pane">
+      <div class="pane-head">
+        <span class="pane-title">OKF note</span>
+        <span class="path" id="destPath"></span>
+      </div>
+      <div class="outwrap"><pre class="note-out" id="noteOut"></pre></div>
+      <div class="pane-note" id="omitNote" hidden></div>
+    </div>
+  </div>
+
+  <aside class="inspector" id="inspector" aria-live="polite">
+    <div class="insp-head">
+      <h3 id="inspTitle">Field provenance</h3>
+      <span class="insp-ref" id="inspRef"></span>
+      <span class="insp-pin" id="inspPin"></span>
+    </div>
+    <div class="insp-body" id="inspBody">
+      <p class="insp-muted">Hover any frontmatter line in the OKF note — click to pin it here.
+      Every explanation cites the function and line numbers in <code>okf_sync.py</code> that produce that field.</p>
+    </div>
+  </aside>
+</section>
+
+<!-- ── Tag lab ────────────────────────────────────────────────────── -->
+<section class="block" id="lab">
+  <header>
+    <p class="section-eyebrow">detect_tags_by_keyword() · okf_sync.py 147–159</p>
+    <h2>The tagging problem — <code>top_n</code> vs <code>any</code></h2>
+    <p>Naive "does this keyword appear anywhere" tagging degrades badly once a corpus is even lightly topical:
+    every note ends up tagged with almost every keyword. This is the bug that motivated the tool.
+    The default <code>top_n</code> mode <em>ranks</em> tags by keyword-hit count per document and keeps only the
+    top N that clear a minimum hit count. Drag the sliders and toggle modes against the current note.</p>
+  </header>
+
+  <div class="lab-grid">
+    <div class="card">
+      <h3>tags config</h3>
+      <div class="ctl-row">
+        <span class="ctl-label" id="modeLabel">mode</span>
+        <div class="seg" role="group" aria-labelledby="modeLabel">
+          <button type="button" id="modeTop" aria-pressed="true">top_n</button>
+          <button type="button" id="modeAny" aria-pressed="false">any</button>
+        </div>
+        <span class="hint">okf_sync.py:153 — <code>if tags_cfg["mode"] == "any"</code></span>
+      </div>
+      <div class="ctl-row" id="topnRow">
+        <label for="topnRange">top_n — keep at most N ranked tags</label>
+        <div class="range-row">
+          <input type="range" id="topnRange" min="1" max="6" step="1" value="2">
+          <output id="topnOut" for="topnRange">2</output>
+        </div>
+      </div>
+      <div class="ctl-row" id="minRow">
+        <label for="minRange">min_hits — a kept tag needs at least this many hits</label>
+        <div class="range-row">
+          <input type="range" id="minRange" min="1" max="8" step="1" value="2">
+          <output id="minOut" for="minRange">2</output>
+        </div>
+      </div>
+      <div class="ctl-row">
+        <label for="staticInput">static tags — always prepended (comma-separated)</label>
+        <input type="text" id="staticInput" spellcheck="false"
+          style="border:1px solid var(--line);background:var(--panel2);border-radius:6px;padding:5px 9px;font-family:var(--mono);font-size:.78rem">
+      </div>
+
+      <h3 style="margin-top:20px">keyword_rules</h3>
+      <div class="rules-cols" aria-hidden="true"><span>tag</span><span>keywords (substring match, case-insensitive)</span><span></span></div>
+      <div class="rules-list" id="rulesList"></div>
+      <button type="button" class="rule-add" id="ruleAdd">+ add rule</button>
+    </div>
+
+    <div class="card">
+      <h3>ranking for the current note</h3>
+      <div class="verdict">
+        <div class="v-item"><span class="v-num any" id="vAny">0</span><span class="v-lab">tags in <code>any</code> mode</span></div>
+        <div class="v-item"><span class="v-num topn" id="vTop">0</span><span class="v-lab">tags in <code>top_n</code> mode</span></div>
+        <div class="v-note" id="vNote"></div>
+      </div>
+
+      <div class="lab-axis" aria-hidden="true">
+        <span></span>
+        <div class="axis-track" id="axisTrack"></div>
+        <span style="text-align:right">hits</span>
+        <span></span>
+      </div>
+      <div class="lab-rows" id="labRows"></div>
+      <p class="lab-foot" id="labFoot"></p>
+
+      <div class="chips-block">
+        <div class="chips-label">resulting <code>tags:</code> for this note</div>
+        <div class="chips" id="chips"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Config ─────────────────────────────────────────────────────── -->
+<section class="block" id="config">
+  <header>
+    <p class="section-eyebrow">config.json</p>
+    <h2>Note config</h2>
+    <p>The remaining fields from <code>config.example.json</code> that shape the frontmatter.
+    The preview on the right is a copy-ready <code>config.json</code> reflecting everything you have set on this page.</p>
+  </header>
+  <div class="cfg-grid">
+    <div class="card">
+      <div class="cfg-fields">
+        <div class="field"><label for="cfgType">type_field</label><input type="text" id="cfgType" spellcheck="false"></div>
+        <div class="field"><label for="cfgTitleP">title_pattern (Python re)</label><input type="text" id="cfgTitleP" spellcheck="false"></div>
+        <div class="field"><label for="cfgSrcDir">source_dir</label><input type="text" id="cfgSrcDir" spellcheck="false"></div>
+        <div class="field"><label for="cfgVault">vault_path</label><input type="text" id="cfgVault" spellcheck="false"></div>
+        <div class="field"><label for="cfgDest">dest_folder</label><input type="text" id="cfgDest" spellcheck="false"></div>
+        <div class="field"><label for="cfgBase">resource_base_url</label><input type="text" id="cfgBase" spellcheck="false" placeholder="null — fall back to git detection"></div>
+        <label class="check-row"><input type="checkbox" id="cfgGit" checked>
+          simulate <code>detect_git_raw_base()</code> — a GitHub <code>origin</code> remote at <code>jens/notes</code>, branch <code>main</code></label>
+      </div>
+      <p class="cfg-note">Resource precedence, as in <code>sync()</code> (okf_sync.py:396):
+      <code>raw_base = cfg["resource_base_url"] or detect_git_raw_base(source_dir)</code> — an explicit base URL wins,
+      then the detected git remote, else <code>file://</code> URIs.</p>
+    </div>
+    <div class="card">
+      <h3>config.json — live preview</h3>
+      <div class="cfg-preview"><pre id="cfgPreview"></pre></div>
+      <p class="cfg-note">The <code>llm</code> block is omitted here on purpose: LLM-assisted tagging and descriptions
+      are opt-in, and on any failure the tool falls back to exactly the keyword and paragraph rules this page simulates.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  This playground mirrors <code>okf_sync.py</code> — <code>strip_frontmatter</code>, <code>extract_title</code>,
+  <code>strip_md</code>, <code>extract_description</code>, <code>detect_tags_by_keyword</code>, <code>detect_timestamp</code>,
+  <code>resolve_resource_url</code>, <code>yaml_escape</code>, and <code>build_note</code> ported faithfully, quirks included:
+  non-overlapping substring counts, stable-sort tie-breaking by config order, the <code>min_hits</code> filter running
+  <em>after</em> the <code>top_n</code> slice, and <code>d[:240]</code> cutting descriptions mid-word. MIT, like the tool.
+</footer>
+
+</div></div>
+
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════════════
+   Faithful JS ports of okf_sync.py. Line numbers cited in comments
+   refer to the Python source in this repository.
+   ════════════════════════════════════════════════════════════════════ */
+
+// DATE_PREFIX_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})")           (L74)
+const DATE_PREFIX_RE = /^(\d{4}-\d{2}-\d{2})/;
+
+// strip_frontmatter (L113–118)
+function stripFrontmatter(content){
+  if (content.startsWith("---")){
+    const end = content.indexOf("\n---", 3);        // content.find("\n---", 3)
+    if (end !== -1) return content.slice(end + 4);  // content[end + 4:]
+  }
+  return content;
+}
+
+// Path(...).stem semantics: basename minus last suffix (dot not at pos 0)
+function pathStem(filename){
+  const base = filename.split("/").pop();
+  const i = base.lastIndexOf(".");
+  return i > 0 ? base.slice(0, i) : base;
+}
+
+function lineOf(text, idx){ return text.slice(0, idx).split("\n").length; }
+
+// extract_title (L121–123): re.search(pattern, content, re.MULTILINE)
+function extractTitle(body, pattern, fallback){
+  let re;
+  try { re = new RegExp(pattern, "m"); }
+  catch(e){ return { title: fallback, matched:false, invalid:true }; }
+  const m = re.exec(body);
+  if (m && m[1] !== undefined)
+    return { title: m[1].trim(), matched:true, bodyLine: lineOf(body, m.index), raw: m[0] };
+  return { title: fallback, matched:false };
+}
+
+// strip_md (L126–131)
+function stripMd(text){
+  text = text.replace(/<!--[\s\S]*?-->/g, "");             // HTML comments (DOTALL)
+  text = text.replace(/\[(\d+)\]/g, "");                   // [n] footnote marks
+  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");     // [text](url) -> text
+  text = text.replace(/[*_`#]/g, "");                      // md punctuation
+  return text.replace(/\s+/g, " ").trim();                 // collapse whitespace
+}
+
+// extract_description (L134–144) — instrumented to record why lines are
+// skipped, but the accept/skip logic is byte-for-byte the Python loop.
+function extractDescription(body, maxLen = 240){
+  const skips = [];
+  const lines = body.split("\n");
+  for (let i = 0; i < lines.length; i++){
+    const s = lines[i].trim();
+    if (!s){ skips.push({ line: i + 1, reason: "blank" }); continue; }
+    if (s.startsWith("#")){ skips.push({ line: i + 1, reason: "starts with '#' (heading)", text: s }); continue; }
+    if (s.startsWith("|")){ skips.push({ line: i + 1, reason: "starts with '|' (table row)", text: s }); continue; }
+    if (s.startsWith("---")){ skips.push({ line: i + 1, reason: "starts with '---' (rule)", text: s }); continue; }
+    if (/^\*\*.+\*\*$/.test(s)){ skips.push({ line: i + 1, reason: "bold-only line (re.fullmatch(r\"\\*\\*.+\\*\\*\"))", text: s }); continue; }
+    const d = stripMd(s);
+    if (d.length > 20){
+      return { text: d.slice(0, maxLen), found:true, bodyLine: i + 1,
+               rawLen: d.length, truncated: d.length > maxLen, skips };
+    }
+    skips.push({ line: i + 1, reason: "only " + d.length + " chars after strip_md() (needs > 20)", text: s });
+  }
+  return { text: "", found:false, skips };
+}
+
+// str.count() — non-overlapping substring count, like Python
+function pyCount(hay, needle){
+  if (!needle) return 0;
+  let n = 0, i = 0;
+  while ((i = hay.indexOf(needle, i)) !== -1){ n++; i += needle.length; }
+  return n;
+}
+
+// detect_tags_by_keyword (L147–159). keyword_rules is an ordered array of
+// [tag, keywords[]] pairs — Python dicts preserve insertion order, and that
+// order is load-bearing: sorted() is stable, so ties keep config order.
+function detectTagsByKeyword(content, tagsCfg){
+  const lower = content.toLowerCase();
+  const breakdown = {};
+  const scored = [];                                    // insertion order, c > 0 only
+  for (const [tag, kws] of tagsCfg.keyword_rules){
+    const per = {};
+    let c = 0;
+    for (const kw of kws){
+      const k = pyCount(lower, kw.toLowerCase());
+      per[kw] = k; c += k;
+    }
+    breakdown[tag] = { total: c, per };
+    if (c > 0) scored.push([tag, c]);
+  }
+  // ranked view is computed either way so the lab can compare modes
+  const ranked = scored.slice().sort((a, b) => b[1] - a[1]);       // stable in JS (ES2019) & Python
+  const slice = ranked.slice(0, tagsCfg.top_n);                    // [: top_n]  — slice FIRST
+  const topKept = slice.filter(([, c]) => c >= tagsCfg.min_hits)   // …THEN the min_hits filter
+                       .map(([t]) => t);
+  const anyKept = scored.map(([t]) => t);                          // list(scores.keys())
+  const matched = tagsCfg.mode === "any" ? anyKept : topKept;
+  return { matched, scored, ranked, slice, topKept, anyKept, breakdown };
+}
+
+// detect_tags (L162–169) minus the LLM branch (llm.enabled = false here)
+function detectTags(content, tagsCfg){
+  const kw = detectTagsByKeyword(content, tagsCfg);
+  kw.final = tagsCfg.static.concat(kw.matched);        // list(static) + matched
+  return kw;
+}
+
+// detect_timestamp (L172–177). The "mtime" branch is simulated with the
+// moment this page loaded, formatted like strftime("%Y-%m-%dT%H:%M:%SZ").
+const SIM_MTIME = new Date();
+function fmtUTC(d){
+  const p = n => String(n).padStart(2, "0");
+  return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) +
+         "T" + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + ":" + p(d.getUTCSeconds()) + "Z";
+}
+function detectTimestamp(filename){
+  const stem = pathStem(filename);
+  const m = DATE_PREFIX_RE.exec(stem);
+  if (m) return { value: m[1] + "T00:00:00Z", mode: "prefix", stem, date: m[1] };
+  return { value: fmtUTC(SIM_MTIME), mode: "mtime", stem };
+}
+
+// resolve_resource_url (L335–339); file:// branch approximates Path.as_uri()
+function resolveResourceUrl(rel, sourceDir, rawBase){
+  if (rawBase) return { url: rawBase + "/" + rel, mode: "base" };
+  const abs = (sourceDir.replace(/\/+$/, "") || "") + "/" + rel;
+  return { url: "file://" + encodeURI(abs), mode: "file" };
+}
+
+// yaml_escape (L344–345)
+function yamlEscape(text){
+  return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+// build_note (L348–377) — identical line assembly
+function buildNote(content, filename, cfg){
+  const body = stripFrontmatter(content);
+  const fmStripped = body.length !== content.length;
+  const fmOffset = fmStripped
+    ? content.slice(0, content.length - body.length).split("\n").length - 1 : 0;
+
+  const stem = pathStem(filename);
+  const t = extractTitle(body, cfg.title_pattern, stem);
+  const d = extractDescription(body);                      // max_len defaults to 240
+  const rawBase = cfg.resource_base_url ||
+                  (cfg.simulate_git_remote ? "https://raw.githubusercontent.com/jens/notes/main" : null);
+  const r = resolveResourceUrl(filename, cfg.source_dir, rawBase);
+  const tg = detectTags(body, cfg.tags);
+  const ts = detectTimestamp(filename);
+
+  const lines = [
+    { text: "---", field: null },
+    { text: "type: " + cfg.type_field, field: "type" },
+    { text: 'title: "' + yamlEscape(t.title) + '"', field: "title" },
+  ];
+  if (d.text)
+    lines.push({ text: 'description: "' + yamlEscape(d.text) + '"', field: "description" });
+  lines.push({ text: "resource: " + r.url, field: "resource" });
+  if (tg.final.length){
+    lines.push({ text: "tags:", field: "tags" });
+    for (const tag of tg.final) lines.push({ text: "  - " + tag, field: "tags", tag });
+  }
+  lines.push({ text: "timestamp: " + ts.value, field: "timestamp" });
+  lines.push({ text: "---", field: null }, { text: "", field: null });
+
+  const noteText = lines.map(l => l.text).join("\n") + body;
+  return { body, fmStripped, fmOffset, title: t, desc: d, resource: { ...r, rawBase, rel: filename },
+           tags: tg, timestamp: ts, lines, noteText, stem };
+}
+
+/* ── Presets ─────────────────────────────────────────────────────── */
+const PRESETS = [
+{
+  id: "blog", label: "Blog post",
+  filename: "posts/2026-05-14-why-i-stopped-hand-tagging.md",
+  content: `# Why I stopped hand-tagging my notes
+
+For three years I tagged every note in my Obsidian vault by hand, and for three years the taxonomy drifted: half of my Python snippets were tagged #python, the rest #dev, and one lonely holdout #code. So when I wrote a small sync tool to publish the vault as OKF frontmatter, I made the machine do the tagging — and the first version cheerfully tagged every single note with every single tag.
+
+The bug was the rule itself. "If a note mentions python anywhere, tag it python" sounds reasonable until your corpus is even lightly topical. This post mentions Python, Obsidian, cron, YAML, and an LLM — should it carry all five tags? Of course not. It is a post about metadata.
+
+The fix that stuck was ranking instead of matching. Count keyword hits per tag, sort, and keep the top two that clear a minimum. The tool still runs on the stdlib, still writes plain frontmatter, and the tags finally mean something: the dominant topics of the note, not every topic it brushes past.
+
+There is an optional mode where Claude picks from the configured tags instead, but the ranked keyword mode stays the default — it is deterministic, free, and works offline.`
+},
+{
+  id: "research", label: "Research note",
+  filename: "notes/retrieval-eval-notes.md",
+  content: `---
+aliases: [rag-evals, retrieval-notes]
+status: draft
+source: reading-group
+---
+
+## Reading notes — evaluating retrieval quality
+
+Papers keep reporting recall@k on curated benchmarks, but the failure mode we keep seeing in production is different: the retriever returns passages that are topically adjacent yet useless to the model, and the LLM confidently paraphrases them anyway.
+
+Three evaluation ideas worth stealing:
+
+- Distractor injection: add near-duplicate passages and measure how often the model cites the wrong one.
+- Answerable/unanswerable splits: a prompt with no supporting passage should produce an abstention, not a guess.
+- Judge with a second model, but audit the judge — an LLM judge inherits the retriever's blind spots.
+
+Open question: whether any of this survives contact with a corpus that is 80% meeting notes and 20% actual knowledge.`
+},
+{
+  id: "changelog", label: "Changelog",
+  filename: "changelog/2026-07-01-v0.4.0.md",
+  content: `# v0.4.0
+
+**Highlights**
+
+- Added \`--watch\` mode: after an initial sync, fswatch reports each new or changed markdown file and the note is re-synced within a second — no more waiting for the next cron window.
+- \`--since YYYY-MM-DD\` now uses the filename date prefix when present, falling back to mtime, matching how timestamps are written.
+- Fixed: notes whose first paragraph was a bold **Status** line produced empty descriptions; bold-only lines are now skipped.
+- Docs: documented the top_n tagging mode and why the naive any mode was retired as the default.
+
+Upgrade is drop-in; config.json needs no changes.`
+},
+{
+  id: "recipe", label: "Recipe",
+  filename: "recipes/skillet-shakshuka.md",
+  content: `# Skillet shakshuka for two
+
+A weeknight standby: eggs poached in a smoky tomato sauce, one skillet, twenty minutes. The trick is blooming the paprika in oil before the tomatoes go in — it turns the sauce from pleasant to unreasonable.
+
+## Ingredients
+
+- 2 tbsp olive oil
+- 1 yellow onion, diced
+- 3 cloves garlic, sliced thin
+- 1 tsp smoked paprika, 1/2 tsp cumin
+- 1 can (400 g) crushed tomatoes
+- 4 eggs
+- Feta, cilantro, warm bread
+
+## Method
+
+Heat the oil in the skillet over medium. Soften the onion, add the garlic, then the paprika and cumin — thirty seconds, no more, or the paprika burns. Tomatoes in, simmer ten minutes until thick. Make four wells, crack in the eggs, lid on, and simmer gently until the whites set. Feta over the top, bread alongside.`
+},
+{
+  id: "meeting", label: "Meeting note",
+  filename: "meetings/2026-06-19-vault-migration.md",
+  content: `# Vault migration sync-up
+
+| Attendee | Role |
+| --- | --- |
+| Jens | vault owner |
+| Mira | infra |
+| Tomás | search |
+
+Decisions below.
+
+We agreed to migrate the shared Obsidian vault to the new git remote before the July freeze, running okf_sync.py from cron on the build box instead of Mira's laptop. Dataview queries stay untouched because the frontmatter keys don't change.
+
+Action items:
+
+- Jens: point resource_base_url at the new raw GitHub URL.
+- Mira: install the cron entry with install_cron.sh, 30-minute schedule.
+- Tomás: verify the crawler still parses the YAML frontmatter after the move.
+
+Next sync-up: 2026-07-03.`
+}
+];
+
+/* ── State ───────────────────────────────────────────────────────── */
+const state = {
+  filename: PRESETS[0].filename,
+  source: PRESETS[0].content,
+  activePreset: "blog",
+  pinned: null,                       // { field, tag } or null
+  cfg: {
+    source_dir: "/Users/jens/notes",
+    vault_path: "/Users/jens/Obsidian/SecondBrain",
+    dest_folder: "OKF Sync",
+    type_field: "Note",
+    title_pattern: "^#\\s+(.+)$",
+    resource_base_url: "",
+    simulate_git_remote: true,
+    tags: {
+      static: ["synced"],
+      mode: "top_n",
+      top_n: 2,
+      min_hits: 2,
+      keyword_rules: [
+        ["python",     ["python", "stdlib", "pip"]],
+        ["obsidian",   ["obsidian", "vault", "dataview"]],
+        ["llm",        ["llm", "claude", "model", "prompt"]],
+        ["automation", ["cron", "sync", "watch"]],
+        ["knowledge",  ["okf", "frontmatter", "metadata", "yaml"]],
+        ["cooking",    ["skillet", "simmer", "garlic", "paprika"]],
+      ],
+    },
+  },
+};
+
+/* ── DOM helpers ─────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const escAttr = s => esc(s).replace(/"/g, "&quot;");
+const codeRef = t => '<span class="insp-ref">' + esc(t) + "</span>";
+
+/* ── Output rendering (YAML tinting) ─────────────────────────────── */
+function tintFmLine(L){
+  const t = L.text;
+  if (t === "---") return '<span class="y-delim">---</span>';
+  if (t === "") return "";
+  if (L.field === "tags" && L.tag !== undefined)
+    return '<span class="y-dash">  - </span><span class="y-str">' + esc(L.tag) + "</span>";
+  const ci = t.indexOf(": ");
+  if (ci === -1) return '<span class="y-key">' + esc(t) + "</span>";  // "tags:" line
+  const key = t.slice(0, ci), val = t.slice(ci + 2);
+  let valHtml;
+  if (val.startsWith('"'))
+    valHtml = '<span class="y-str">' + esc(val) + "</span>";
+  else if (L.field === "timestamp")
+    valHtml = '<span class="y-num">' + esc(val) + "</span>";
+  else
+    valHtml = '<span class="y-scalar">' + esc(val) + "</span>";
+  return '<span class="y-key">' + esc(key) + "</span>: " + valHtml;
+}
+function tintBody(body){
+  return body.split("\n").map(line => {
+    if (/^#{1,6}\s/.test(line)) return '<span class="b-h">' + esc(line) + "</span>";
+    return '<span class="b-dim">' + esc(line) + "</span>";
+  }).join("\n");
+}
+function renderOutput(res){
+  let html = "";
+  for (const L of res.lines){
+    if (L.field){
+      html += '<span class="fmline" tabindex="0" data-field="' + L.field + '"' +
+              (L.tag !== undefined ? ' data-tag="' + escAttr(L.tag) + '"' : "") +
+              ' aria-label="Explain ' + L.field + ' field">' + tintFmLine(L) + "</span>\n";
+    } else {
+      html += tintFmLine(L) + "\n";
+    }
+  }
+  // build_note: "\n".join(lines) + body — the trailing "" line above already
+  // produced the final newline; body is appended verbatim (it usually starts
+  // with its own "\n" when the source had frontmatter).
+  html = html.slice(0, -1);           // drop our cosmetic extra newline
+  html += tintBody(res.body);
+  $("noteOut").innerHTML = html;
+  if (state.pinned){
+    const sel = state.pinned.tag !== undefined
+      ? '.fmline[data-field="tags"][data-tag="' + CSS.escape(state.pinned.tag) + '"]'
+      : '.fmline[data-field="' + state.pinned.field + '"]';
+    const el = $("noteOut").querySelector(sel);
+    if (el) el.classList.add("pinned"); else state.pinned = null;
+  }
+}
+
+/* ── Inspector ───────────────────────────────────────────────────── */
+function q(text){ return '<div class="quote">' + esc(text) + "</div>"; }
+
+function inspectorFor(field, tag, res){
+  const cfg = state.cfg;
+  if (field === "type") return {
+    title: "type", ref: "build_note() — okf_sync.py:365",
+    html: q('f"type: {cfg[\'type_field\']}"') +
+      "<p>Copied verbatim from config — <code>type_field</code> is <code>" + esc(cfg.type_field) +
+      "</code>. No per-note extraction happens for this field; change it in the Note config panel.</p>"
+  };
+  if (field === "title"){
+    const t = res.title;
+    let body;
+    if (t.invalid){
+      body = '<p class="insp-warn">The pattern <code>' + esc(cfg.title_pattern) +
+        "</code> is not a valid regex — the real tool would raise <code>re.error</code>. " +
+        "Shown here with the filename fallback: <code>Path.stem</code> = <code>" + esc(res.stem) + "</code>.</p>";
+    } else if (t.matched){
+      body = "<p><span class='insp-ok'>Matched.</span> <code>re.search(title_pattern, body, re.MULTILINE)</code> with pattern <code>" +
+        esc(cfg.title_pattern) + "</code> hit source line <b>" + (t.bodyLine + res.fmOffset) +
+        "</b>:</p>" + q(t.raw) +
+        "<p>Then <code>m.group(1).strip()</code>, and <code>yaml_escape()</code> (L344–345) backslash-escapes " +
+        '<code>\\</code> and <code>"</code> before the value is double-quoted.</p>';
+    } else {
+      body = "<p><span class='insp-warn'>No match</span> for <code>" + esc(cfg.title_pattern) +
+        "</code> anywhere in the body — fallback is the filename: <code>path.stem</code> = <code>" +
+        esc(res.stem) + "</code>.</p>" +
+        "<p class='insp-muted'>Note the pattern needs whitespace right after a single <code>#</code>, so a note " +
+        "whose top heading is <code>##&nbsp;…</code> falls back to the filename — exactly what happens here.</p>";
+    }
+    return { title: "title", ref: "extract_title() — okf_sync.py:121–123", html: q("m = re.search(pattern, content, re.MULTILINE)\nreturn m.group(1).strip() if m else fallback") + body };
+  }
+  if (field === "description"){
+    const d = res.desc;
+    let items = "";
+    const shown = d.skips.slice(0, 8);
+    for (const s of shown){
+      items += "<li>source line " + (s.line + res.fmOffset) + " skipped — " + esc(s.reason) +
+        (s.text ? " <span class='insp-muted'>(" + esc(s.text.length > 46 ? s.text.slice(0, 46) + "…" : s.text) + ")</span>" : "") + "</li>";
+    }
+    if (d.skips.length > 8) items += "<li class='insp-muted'>… " + (d.skips.length - 8) + " more skipped lines</li>";
+    let accept = "";
+    if (d.found){
+      accept = "<p><span class='insp-ok'>Accepted:</span> source line <b>" + (d.bodyLine + res.fmOffset) +
+        "</b> → <code>strip_md()</code> (L126–131: strips HTML comments, <code>[n]</code> footnote marks, unwraps " +
+        "<code>[text](url)</code>, deletes <code>* _ ` #</code>, collapses whitespace) → <b>" + d.rawLen + " chars</b>" +
+        (d.truncated
+          ? ', then <code>d[:240]</code> slices to exactly 240 — <span class="insp-warn">cut mid-word by design</span>, no ellipsis.'
+          : " — under the 240-char cap, kept whole.") + "</p>";
+      const isBullet = d.text.startsWith("- ");
+      if (isBullet) accept += "<p class='insp-muted'>Quirk, faithfully reproduced: the scanner only skips lines starting " +
+        "<code>---</code>, not <code>-&nbsp;</code> — so a bullet can become the description, leading dash and all.</p>";
+    } else {
+      accept = "<p><span class='insp-warn'>No qualifying paragraph found</span> (nothing stripped to &gt; 20 chars), so " +
+        "<code>extract_description</code> returned <code>\"\"</code> and <code>build_note</code> omitted the key entirely " +
+        "(L368–369: <code>if description:</code>).</p>";
+    }
+    return { title: "description", ref: "extract_description() — okf_sync.py:134–144",
+      html: "<p>Scans the body top-down for the first “real” paragraph:</p><ul>" + items + "</ul>" + accept };
+  }
+  if (field === "resource"){
+    const r = res.resource;
+    let body;
+    if (r.mode === "base"){
+      const via = cfg.resource_base_url ? "<code>resource_base_url</code> from config"
+        : "<code>detect_git_raw_base()</code> (L315–332), which shells out to <code>git remote get-url origin</code> " +
+          "and <code>git rev-parse --abbrev-ref HEAD</code>, then rewrites a github.com remote to " +
+          "<code>raw.githubusercontent.com/&lt;owner/repo&gt;/&lt;branch&gt;</code> — simulated here as <code>jens/notes</code> @ <code>main</code>";
+      body = "<p><code>rel = path.relative_to(source_dir)</code> = <code>" + esc(r.rel) +
+        '</code>, and <code>raw_base</code> is truthy → <code>f"{raw_base}/{rel}"</code>.</p>' +
+        "<p>raw_base came from " + via + ". Precedence (sync(), L396): explicit config URL, then git detection, else <code>file://</code>.</p>";
+    } else {
+      body = "<p>No <code>resource_base_url</code> and no detected git remote → the <code>else</code> branch: " +
+        "<code>path.resolve().as_uri()</code>, a <code>file://</code> URI under <code>source_dir</code> = <code>" +
+        esc(cfg.source_dir) + "</code>.</p>";
+    }
+    return { title: "resource", ref: "resolve_resource_url() — okf_sync.py:335–339", html: body };
+  }
+  if (field === "tags"){
+    const tg = res.tags, tc = cfg.tags;
+    if (tag !== undefined){
+      const isStatic = tc.static.includes(tag);
+      const isMatched = tg.matched.includes(tag);
+      if (isStatic && !isMatched){
+        return { title: "tags › " + tag, ref: "detect_tags() — okf_sync.py:169",
+          html: q('return list(tags_cfg["static"]) + matched') +
+          "<p><code>" + esc(tag) + "</code> is a <b>static tag</b> from <code>tags.static</code> — prepended to every note " +
+          "unconditionally, before any keyword matching.</p>" };
+      }
+      const b = tg.breakdown[tag];
+      const rank = tg.ranked.findIndex(([t]) => t === tag);
+      let per = "";
+      if (b) for (const [kw, c] of Object.entries(b.per)) if (c > 0)
+        per += "<li><code>" + esc(kw) + "</code> — " + c + " hit" + (c === 1 ? "" : "s") + "</li>";
+      return { title: "tags › " + tag, ref: "detect_tags_by_keyword() — okf_sync.py:147–159",
+        html: "<p><b>" + (b ? b.total : 0) + " keyword hits</b>" +
+          (rank >= 0 ? " — rank " + (rank + 1) + " of " + tg.scored.length + " scoring tags" : "") +
+          (tc.mode === "top_n" ? " → inside <code>top_n</code> = " + tc.top_n + " and ≥ <code>min_hits</code> = " + tc.min_hits + ", so it survived."
+                               : " → <code>any</code> mode keeps every tag with &gt; 0 hits.") +
+          (isStatic ? " <span class='insp-muted'>(also listed in tags.static — the concat in detect_tags means it appears; " +
+                      "duplicates are possible, exactly as in the Python.)</span>" : "") + "</p>" +
+          (per ? "<ul>" + per + "</ul>" : "") +
+          "<p class='insp-muted'>Hits are case-insensitive, non-overlapping substring counts — <code>lower.count(kw.lower())</code> — " +
+          "so “sync” also matches inside “synced” and “okf_sync”.</p>" };
+    }
+    const scoredStr = tg.ranked.map(([t, c]) => t + " " + c).join(" · ") || "none";
+    return { title: "tags", ref: "detect_tags() — okf_sync.py:162–169",
+      html: q('return list(tags_cfg["static"]) + matched') +
+        "<p>Static tags (<code>" + (tc.static.join(", ") || "—") + "</code>) are prepended, then " +
+        "<code>detect_tags_by_keyword()</code> scores every configured tag against the lowercased body: <b>" +
+        esc(scoredStr) + "</b>.</p>" +
+        (tc.mode === "top_n"
+          ? "<p><code>top_n</code> mode: stable sort by hit count (ties keep config order), slice the top " + tc.top_n +
+            ", <em>then</em> drop any under <code>min_hits</code> = " + tc.min_hits + ". Kept: <b>" +
+            (tg.topKept.join(", ") || "none") + "</b>. See the lab below for the full ranking.</p>"
+          : "<p><code>any</code> mode: every tag with a single hit anywhere gets applied — <b>" +
+            (tg.anyKept.join(", ") || "none") + "</b>. The lab below shows what <code>top_n</code> would have kept instead.</p>") };
+  }
+  if (field === "timestamp"){
+    const ts = res.timestamp;
+    let body;
+    if (ts.mode === "prefix"){
+      body = "<p><span class='insp-ok'>Filename prefix matched.</span> <code>DATE_PREFIX_RE = ^(\\d{4}-\\d{2}-\\d{2})</code> " +
+        "on <code>Path.stem</code> = <code>" + esc(ts.stem) + "</code> → <code>\"" + esc(ts.date) +
+        "T00:00:00Z\"</code> — midnight UTC by construction, ignoring the file's mtime entirely.</p>";
+    } else {
+      body = "<p>No <code>YYYY-MM-DD</code> prefix on <code>Path.stem</code> = <code>" + esc(ts.stem) +
+        "</code> → fallback: <code>datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)" +
+        ".strftime(\"%Y-%m-%dT%H:%M:%SZ\")</code>. The mtime is simulated here as the moment this page loaded.</p>" +
+        "<p class='insp-muted'>Tip: prefix the filename with a date (try it in the filename box) and watch this switch branches.</p>";
+    }
+    return { title: "timestamp", ref: "detect_timestamp() — okf_sync.py:172–177", html: body };
+  }
+  return null;
+}
+
+function showInspector(field, tag, res){
+  const info = inspectorFor(field, tag, res || lastResult);
+  if (!info) return;
+  $("inspTitle").textContent = info.title;
+  $("inspRef").textContent = info.ref;
+  $("inspBody").innerHTML = info.html;
+  $("inspPin").textContent = state.pinned ? "pinned — click again or press Esc to release" : "";
+}
+function resetInspector(){
+  if (state.pinned){ showInspector(state.pinned.field, state.pinned.tag, lastResult); return; }
+  $("inspTitle").textContent = "Field provenance";
+  $("inspRef").textContent = "";
+  $("inspPin").textContent = "";
+  $("inspBody").innerHTML = '<p class="insp-muted">Hover any frontmatter line in the OKF note — click to pin it here. ' +
+    'Every explanation cites the function and line numbers in <code>okf_sync.py</code> that produce that field.</p>';
+}
+
+/* ── Tag lab ─────────────────────────────────────────────────────── */
+const labRowEls = new Map();   // tag -> row element
+const chipEls = new Map();     // key -> chip element
+
+function labRowEl(tag){
+  let el = labRowEls.get(tag);
+  if (!el){
+    el = document.createElement("div");
+    el.className = "lab-row";
+    el.innerHTML = '<span class="lab-tag"></span>' +
+      '<span class="lab-track"><span class="lab-bar"></span><span class="lab-th"></span></span>' +
+      '<span class="lab-hits"></span><span class="lab-note"></span>';
+    el.querySelector(".lab-tag").textContent = tag;
+    el.dataset.tag = tag;
+    labRowEls.set(tag, el);
+  }
+  return el;
+}
+
+function updateLab(res){
+  const tc = state.cfg.tags;
+  const tg = res.tags;
+  const rowsBox = $("labRows");
+  const scored = tg.scored, ranked = tg.ranked;
+  const rankIdx = new Map(ranked.map(([t], i) => [t, i]));
+  const scoreOf = Object.fromEntries(scored);
+
+  // display order: ranked (desc, stable) then zero-hit tags in config order
+  const order = ranked.map(([t]) => t)
+    .concat(tc.keyword_rules.map(([t]) => t).filter(t => !(t in scoreOf)));
+
+  const maxScore = ranked.length ? ranked[0][1] : 0;
+  const axisMax = Math.max(maxScore, tc.min_hits) + 1;
+  const thPct = (tc.min_hits / axisMax) * 100;
+
+  // axis ticks
+  const step = axisMax <= 12 ? 1 : Math.ceil(axisMax / 10);
+  let ticks = "";
+  for (let i = 0; i <= axisMax; i += step)
+    ticks += '<span class="axis-tick" style="left:' + (i / axisMax * 100) + '%">' + i + "</span>";
+  ticks += '<span class="axis-th-label" style="left:' + thPct + '%">min_hits ' + tc.min_hits + "</span>";
+  $("axisTrack").innerHTML = ticks;
+
+  // tie detection at the cutoff boundary (stable sort = config order wins)
+  const tieTags = new Set();
+  if (tc.mode === "top_n" && ranked.length > tc.top_n &&
+      ranked[tc.top_n - 1] && ranked[tc.top_n - 1][1] === ranked[tc.top_n][1]){
+    const v = ranked[tc.top_n][1];
+    for (const [t, c] of ranked) if (c === v) tieTags.add(t);
+  }
+
+  // drop stale rows; re-append ONLY if the order actually changed, so that
+  // slider drags animate in place instead of resetting transitions
+  for (const [tag, el] of labRowEls) if (!order.includes(tag)){ el.remove(); labRowEls.delete(tag); }
+  const domOrder = Array.from(rowsBox.querySelectorAll(".lab-row")).map(el => el.dataset.tag);
+  if (domOrder.length !== order.length || order.some((t, i) => t !== domOrder[i])){
+    const frag = document.createDocumentFragment();
+    order.forEach(tag => frag.appendChild(labRowEl(tag)));
+    rowsBox.appendChild(frag);
+  } else {
+    order.forEach(tag => labRowEl(tag));   // ensure elements exist in the map
+  }
+
+  const wouldSurvive = new Set(tg.topKept);
+  order.forEach(tag => {
+    const el = labRowEls.get(tag);
+    const c = scoreOf[tag] || 0;
+    const r = rankIdx.has(tag) ? rankIdx.get(tag) : -1;
+    el.querySelector(".lab-bar").style.width = "calc(" + (c / axisMax * 100) + "% - 2px)";
+    el.querySelector(".lab-th").style.left = thPct + "%";
+    el.querySelector(".lab-hits").textContent = c;
+    let status, note;
+    if (c === 0){ status = "zero"; note = "no hits"; }
+    else if (tc.mode === "top_n"){
+      if (r < tc.top_n && c >= tc.min_hits){ status = "kept"; note = "kept · rank " + (r + 1); }
+      else if (r < tc.top_n){ status = "undermin"; note = "rank " + (r + 1) + ", but " + c + " < min_hits — dropped (slot still spent: the filter runs after the slice)"; }
+      else { status = "outranked"; note = "outranked (rank " + (r + 1) + ") — dropped. 'any' would tag it"; }
+      if (tieTags.has(tag)) note += " · tied — config order decides";
+    } else {
+      if (wouldSurvive.has(tag)){ status = "anykept"; note = "tagged (" + c + " hit" + (c === 1 ? "" : "s") + ")"; }
+      else { status = "noisy"; note = "tagged (" + c + ") — noise: top_n would drop this"; }
+    }
+    el.dataset.status = status;
+    el.querySelector(".lab-note").textContent = note;
+  });
+
+  // cutoff line: after the top_n-th scored row (rows are 34px + 6px gap)
+  let cut = rowsBox.querySelector(".lab-cutoff");
+  if (!cut){ cut = document.createElement("div"); cut.className = "lab-cutoff"; rowsBox.appendChild(cut); }
+  const cutIdx = Math.min(tc.top_n, ranked.length);
+  cut.style.top = (cutIdx * 40 - 3) + "px";
+  cut.dataset.label = "top_n cutoff · N = " + tc.top_n;
+  cut.style.opacity = (tc.mode === "top_n" && ranked.length) ? "1" : (ranked.length ? ".28" : "0");
+
+  // verdict
+  const nAny = tg.anyKept.length, nTop = tg.topKept.length;
+  $("vAny").textContent = nAny;
+  $("vTop").textContent = nTop;
+  const diff = nAny - nTop;
+  $("vNote").innerHTML = diff > 0
+    ? "<b>" + diff + " incidental topic" + (diff === 1 ? "" : "s") + "</b> filtered out by ranking — mentioned in passing, not what the note is about."
+    : (nAny === 0 ? "No configured keyword hits at all — only static tags apply." : "Both modes agree on this note.");
+  $("labFoot").innerHTML = "sorted by <b>-hits</b> (stable → ties keep config order) · slice <b>[:top_n]</b> first, " +
+    "<b>min_hits</b> filter second — okf_sync.py:156–157";
+
+  // chips: final tags row (static + every configured tag, keyed & animated)
+  const chipsBox = $("chips");
+  const wanted = [];
+  for (const t of tc.static) wanted.push({ key: "s:" + t, label: t, cls: "static", hits: null });
+  for (const [t] of tc.keyword_rules){
+    const c = scoreOf[t] || 0;
+    const on = tg.matched.includes(t);
+    wanted.push({ key: "k:" + t, label: t, cls: on ? "on" : (c > 0 ? "off" : "gone"), hits: c });
+  }
+  for (const [key, el] of chipEls) if (!wanted.some(w => w.key === key)){ el.remove(); chipEls.delete(key); }
+  for (const w of wanted){
+    let el = chipEls.get(w.key);
+    if (!el){
+      el = document.createElement("span");
+      el.className = "chip gone";
+      chipsBox.appendChild(el);
+      chipEls.set(w.key, el);
+      void el.offsetWidth;    // let the entry transition run
+    }
+    el.textContent = w.hits === null ? w.label + " · static" : w.label + " · " + w.hits;
+    el.className = "chip " + w.cls;
+    el.title = w.cls === "off" ? "matched, but dropped by ranking / min_hits" : "";
+  }
+}
+
+/* ── Rules editor ────────────────────────────────────────────────── */
+function renderRules(){
+  const box = $("rulesList");
+  box.innerHTML = "";
+  state.cfg.tags.keyword_rules.forEach(([tag, kws], i) => {
+    const row = document.createElement("div");
+    row.className = "rule-row";
+    const ti = document.createElement("input");
+    ti.value = tag; ti.spellcheck = false; ti.setAttribute("aria-label", "tag name " + (i + 1));
+    const ki = document.createElement("input");
+    ki.value = kws.join(", "); ki.spellcheck = false; ki.setAttribute("aria-label", "keywords for " + (tag || "rule " + (i + 1)));
+    const x = document.createElement("button");
+    x.type = "button"; x.className = "rule-x"; x.textContent = "×";
+    x.setAttribute("aria-label", "remove rule " + (tag || i + 1));
+    ti.addEventListener("input", () => { state.cfg.tags.keyword_rules[i][0] = ti.value.trim(); render(); });
+    ki.addEventListener("input", () => {
+      state.cfg.tags.keyword_rules[i][1] = ki.value.split(",").map(s => s.trim()).filter(Boolean);
+      render();
+    });
+    x.addEventListener("click", () => { state.cfg.tags.keyword_rules.splice(i, 1); renderRules(); render(); });
+    row.append(ti, ki, x);
+    box.appendChild(row);
+  });
+}
+
+/* ── Config preview ──────────────────────────────────────────────── */
+function updateCfgPreview(){
+  const c = state.cfg;
+  const obj = {
+    source_dir: c.source_dir,
+    vault_path: c.vault_path,
+    dest_folder: c.dest_folder,
+    file_glob: "**/*.md",
+    type_field: c.type_field,
+    title_pattern: c.title_pattern,
+    resource_base_url: c.resource_base_url || null,
+    tags: {
+      static: c.tags.static,
+      mode: c.tags.mode,
+      top_n: c.tags.top_n,
+      min_hits: c.tags.min_hits,
+      keyword_rules: Object.fromEntries(c.tags.keyword_rules.filter(([t]) => t)),
+    },
+  };
+  $("cfgPreview").textContent = JSON.stringify(obj, null, 2);
+}
+
+/* ── Editor gutter ───────────────────────────────────────────────── */
+let gutterLines = -1;
+function updateGutter(){
+  const n = state.source.split("\n").length;
+  if (n !== gutterLines){
+    gutterLines = n;
+    let s = "";
+    for (let i = 1; i <= n; i++) s += i + "\n";
+    $("gutter").textContent = s;
+  }
+  $("gutter").parentElement.scrollTop = $("src").scrollTop;
+}
+
+/* ── Main render ─────────────────────────────────────────────────── */
+let lastResult = null;
+function render(){
+  const cfg = state.cfg;
+  const res = buildNote(state.source, state.filename, cfg);
+  lastResult = res;
+
+  $("srcPath").textContent = cfg.source_dir + "/" + state.filename;
+  $("destPath").textContent = cfg.vault_path + "/" + cfg.dest_folder + "/" + state.filename;
+  renderOutput(res);
+
+  const srcNote = $("srcNote");
+  if (res.fmStripped){
+    srcNote.hidden = false;
+    srcNote.innerHTML = "source frontmatter detected — <b>strip_frontmatter()</b> (L113–118) removed " +
+      res.fmOffset + " lines before extraction. The source's own keys never leak into the OKF note.";
+  } else srcNote.hidden = true;
+
+  const omit = $("omitNote");
+  if (!res.desc.found){
+    omit.hidden = false;
+    omit.innerHTML = "<b>description omitted</b> — no line stripped to &gt; 20 chars; build_note only writes the key " +
+      "when extract_description returns something (L368–369).";
+  } else if (res.desc.truncated){
+    omit.hidden = false;
+    omit.innerHTML = "description truncated — paragraph was <b>" + res.desc.rawLen +
+      " chars</b>, sliced to 240 by <b>d[:max_len]</b> (L143). No ellipsis: the cut is mid-word, faithfully.";
+  } else omit.hidden = true;
+
+  updateLab(res);
+  updateCfgPreview();
+  updateGutter();
+  resetInspector();
+}
+
+/* ── Wiring ──────────────────────────────────────────────────────── */
+function markPreset(id){
+  state.activePreset = id;
+  document.querySelectorAll(".preset-btn").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.id === id)));
+}
+(function initPresets(){
+  const box = $("presets");
+  for (const p of PRESETS){
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "preset-btn"; b.dataset.id = p.id;
+    b.textContent = p.label;
+    b.setAttribute("aria-pressed", String(p.id === state.activePreset));
+    b.addEventListener("click", () => {
+      state.filename = p.filename;
+      state.source = p.content;
+      $("fnInput").value = p.filename;
+      $("src").value = p.content;
+      markPreset(p.id);
+      state.pinned = null;
+      render();
+    });
+    box.appendChild(b);
+  }
+})();
+
+$("src").value = state.source;
+$("fnInput").value = state.filename;
+$("src").addEventListener("input", e => {
+  state.source = e.target.value; markPreset("__custom"); render();
+});
+$("src").addEventListener("scroll", () => { $("gutter").parentElement.scrollTop = $("src").scrollTop; });
+$("fnInput").addEventListener("input", e => {
+  state.filename = e.target.value.replace(/^\.?\/+/, "") || "untitled.md"; render();
+});
+
+// output hover / pin
+$("noteOut").addEventListener("mouseover", e => {
+  const t = e.target.closest(".fmline");
+  if (t) showInspector(t.dataset.field, t.dataset.tag, lastResult);
+});
+$("noteOut").addEventListener("mouseout", e => {
+  if (e.target.closest(".fmline")) resetInspector();
+});
+$("noteOut").addEventListener("focusin", e => {
+  const t = e.target.closest(".fmline");
+  if (t) showInspector(t.dataset.field, t.dataset.tag, lastResult);
+});
+$("noteOut").addEventListener("click", e => {
+  const t = e.target.closest(".fmline");
+  if (!t) return;
+  const same = state.pinned && state.pinned.field === t.dataset.field && state.pinned.tag === t.dataset.tag;
+  document.querySelectorAll(".fmline.pinned").forEach(el => el.classList.remove("pinned"));
+  state.pinned = same ? null : { field: t.dataset.field, tag: t.dataset.tag };
+  if (!same) t.classList.add("pinned");
+  resetInspector();
+  if (state.pinned) showInspector(state.pinned.field, state.pinned.tag, lastResult);
+});
+$("noteOut").addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " "){
+    const t = e.target.closest(".fmline");
+    if (t){ e.preventDefault(); t.click(); }
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && state.pinned){
+    document.querySelectorAll(".fmline.pinned").forEach(el => el.classList.remove("pinned"));
+    state.pinned = null; resetInspector();
+  }
+});
+
+// lab controls
+function setMode(m){
+  state.cfg.tags.mode = m;
+  $("modeTop").setAttribute("aria-pressed", String(m === "top_n"));
+  $("modeAny").setAttribute("aria-pressed", String(m === "any"));
+  $("topnRow").classList.toggle("dim", m === "any");
+  render();
+}
+$("modeTop").addEventListener("click", () => setMode("top_n"));
+$("modeAny").addEventListener("click", () => setMode("any"));
+$("topnRange").addEventListener("input", e => {
+  state.cfg.tags.top_n = +e.target.value; $("topnOut").textContent = e.target.value; render();
+});
+$("minRange").addEventListener("input", e => {
+  state.cfg.tags.min_hits = +e.target.value; $("minOut").textContent = e.target.value; render();
+});
+$("staticInput").value = state.cfg.tags.static.join(", ");
+$("staticInput").addEventListener("input", e => {
+  state.cfg.tags.static = e.target.value.split(",").map(s => s.trim()).filter(Boolean); render();
+});
+$("ruleAdd").addEventListener("click", () => {
+  state.cfg.tags.keyword_rules.push(["new-tag", []]);
+  renderRules(); render();
+  const rows = $("rulesList").querySelectorAll(".rule-row");
+  const last = rows[rows.length - 1];
+  if (last) last.querySelector("input").focus();
+});
+
+// config panel
+const cfgBindings = [
+  ["cfgType", "type_field"], ["cfgTitleP", "title_pattern"], ["cfgSrcDir", "source_dir"],
+  ["cfgVault", "vault_path"], ["cfgDest", "dest_folder"], ["cfgBase", "resource_base_url"],
+];
+for (const [id, key] of cfgBindings){
+  $(id).value = state.cfg[key];
+  $(id).addEventListener("input", e => { state.cfg[key] = e.target.value; render(); });
+}
+$("cfgGit").addEventListener("change", e => { state.cfg.simulate_git_remote = e.target.checked; render(); });
+
+renderRules();
+render();
+</script>
