@@ -905,7 +905,9 @@ function simulateDeck(seed){
   var rnd=mulberry32(seed),DAYS=180,events=[],cards=[];
   DECK.forEach(function(c,i){
     var d=1+((i*7)%14)/10; // hidden difficulty 1.0–2.3
-    cards.push({i:i,d:d,trueS:0.6+2.6/d,last:-1,due:Math.floor(i/2),ef:2.5,reps:0,ivl:0,lapses:0});
+    // s0: e-folding stability after first learning; (0.4+1.8/d) days is the 90%-recall interval
+    var s0=(0.4+1.8/d)/0.10536;
+    cards.push({i:i,d:d,s0:s0,trueS:s0,last:-1,due:Math.floor(i/2),ef:2.5,reps:0,ivl:0,lapses:0});
   });
   for(var day=0;day<DAYS;day++){
     cards.forEach(function(c){
@@ -917,11 +919,11 @@ function simulateDeck(seed){
       }else{
         var dt=day-c.last;
         R=Math.exp(-dt/c.trueS);
-        if(rnd()<R){ q=R>0.9?(rnd()<0.5?5:4):(R>0.7?4:3); }
-        else{ q=R>0.5?2:(R>0.2?1:0); }
+        if(rnd()<R){ q=R>0.93?(rnd()<0.6?5:4):(R>0.75?4:3); }
+        else{ q=R>0.5?2:(R>0.25?1:0); }
       }
-      if(q>=3){ c.trueS*= 1+(4.4/c.d)*(1-R)+0.3*rnd(); }
-      else{ c.trueS=Math.max(0.4,c.trueS*0.3); c.lapses++; }
+      if(q>=3){ if(c.last>=0)c.trueS*= 1.6+(5/c.d)*(1-R)+0.25*rnd(); }
+      else{ c.trueS=Math.max(c.s0*0.7,c.trueS*0.35); c.lapses++; }
       sm2Update(c,q);
       events.push({c:c.i,day:day,q:q,ivl:c.ivl,ef:c.ef,R:R});
       c.last=day;

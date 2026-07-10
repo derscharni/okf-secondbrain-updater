@@ -762,7 +762,8 @@ function draw(){
       ctx.globalAlpha=n.visA; ctx.strokeStyle=TH.text; ctx.lineWidth=1.2;
       ctx.beginPath(); ctx.arc(nx,ny,nr+3,0,6.2832); ctx.stroke();
     }
-    if((hot||(n.r*cam.k>=6.5&&ga2>0.5))&&n.visA>0.6)
+    var labeled=n.r*cam.k>=5.5||(n.inl.length>=8&&cam.k>=0.3);
+    if((hot||(labeled&&ga2>0.5))&&n.visA>0.6)
       labels.push({n:n,x:nx+nr+5,y:ny,hot:hot});
   }
   // labels
