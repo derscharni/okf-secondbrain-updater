@@ -1,0 +1,2009 @@
+<title>The Luhmann Engine</title>
+<style>
+/* ============================================================
+   THE LUHMANN ENGINE — "Bielefeld Registratur"
+   Palette:  Bond #eef0e9 · Archive Night #121511 · Typewriter Ink #20241f
+             Cabinet Green #31684d · Stamp Red #bd3a2a · Graphite #878c7f
+   Type:     condensed grotesque (labels) / ui-monospace (data) / Charter (prose)
+   ============================================================ */
+:root {
+  --paper:      #eef0e9;
+  --panel:      #f7f8f2;
+  --canvas-bg:  #e8ebe1;
+  --ink:        #20241f;
+  --ink-2:      #565b50;
+  --muted:      #878c7f;
+  --line:       #d3d7c9;
+  --line-soft:  #dfe2d6;
+  --accent:     #31684d;
+  --accent-ink: #f4f6f0;
+  --stamp:      #bd3a2a;
+  --card-paper: #fbfaf3;
+  --card-rule:  #b9cbd8;
+  --card-head:  #d98b7f;
+  --card-ink:   #2a2c26;
+  --net-link:   rgba(32,36,31,0.16);
+  --net-ring:   rgba(32,36,31,0.10);
+  --shadow:     rgba(28,32,26,0.22);
+  /* topic slots — validated categorical order (light steps) */
+  --t0: #2a78d6;  /* systems theory    — blue    */
+  --t1: #1baf7a;  /* communication     — aqua    */
+  --t2: #eda100;  /* law               — yellow  */
+  --t3: #008300;  /* organization      — green   */
+  --t4: #4a3aa7;  /* epistemology      — violet  */
+  --t5: #e34948;  /* differentiation   — red     */
+  --t6: #e87ba4;  /* autopoiesis       — magenta */
+  --t7: #eb6834;  /* meaning & media   — orange  */
+  --ch-cards: #2a78d6;
+  --ch-links: #1baf7a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:      #121511;
+    --panel:      #191d18;
+    --canvas-bg:  #0e110d;
+    --ink:        #e7e9df;
+    --ink-2:      #aab0a2;
+    --muted:      #7d8376;
+    --line:       #2a2f28;
+    --line-soft:  #232823;
+    --accent:     #6cc29a;
+    --accent-ink: #0f1a14;
+    --stamp:      #e2604a;
+    --net-link:   rgba(231,233,223,0.13);
+    --net-ring:   rgba(231,233,223,0.09);
+    --shadow:     rgba(0,0,0,0.55);
+    --t0: #3987e5; --t1: #199e70; --t2: #c98500; --t3: #008300;
+    --t4: #9085e9; --t5: #e66767; --t6: #d55181; --t7: #d95926;
+    --ch-cards: #3987e5;
+    --ch-links: #199e70;
+  }
+}
+:root[data-theme="light"] {
+  --paper:      #eef0e9;
+  --panel:      #f7f8f2;
+  --canvas-bg:  #e8ebe1;
+  --ink:        #20241f;
+  --ink-2:      #565b50;
+  --muted:      #878c7f;
+  --line:       #d3d7c9;
+  --line-soft:  #dfe2d6;
+  --accent:     #31684d;
+  --accent-ink: #f4f6f0;
+  --stamp:      #bd3a2a;
+  --net-link:   rgba(32,36,31,0.16);
+  --net-ring:   rgba(32,36,31,0.10);
+  --shadow:     rgba(28,32,26,0.22);
+  --t0: #2a78d6; --t1: #1baf7a; --t2: #eda100; --t3: #008300;
+  --t4: #4a3aa7; --t5: #e34948; --t6: #e87ba4; --t7: #eb6834;
+  --ch-cards: #2a78d6;
+  --ch-links: #1baf7a;
+}
+:root[data-theme="dark"] {
+  --paper:      #121511;
+  --panel:      #191d18;
+  --canvas-bg:  #0e110d;
+  --ink:        #e7e9df;
+  --ink-2:      #aab0a2;
+  --muted:      #7d8376;
+  --line:       #2a2f28;
+  --line-soft:  #232823;
+  --accent:     #6cc29a;
+  --accent-ink: #0f1a14;
+  --stamp:      #e2604a;
+  --net-link:   rgba(231,233,223,0.13);
+  --net-ring:   rgba(231,233,223,0.09);
+  --shadow:     rgba(0,0,0,0.55);
+  --t0: #3987e5; --t1: #199e70; --t2: #c98500; --t3: #008300;
+  --t4: #9085e9; --t5: #e66767; --t6: #d55181; --t7: #d95926;
+  --ch-cards: #3987e5;
+  --ch-links: #199e70;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body { margin: 0; }
+
+.lz-app {
+  --f-label: "Avenir Next Condensed", "Arial Narrow", "Franklin Gothic Medium", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --f-prose: "Iowan Old Style", Charter, "Bitstream Charter", "Palatino Linotype", Georgia, serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-prose);
+  font-size: 15px;
+  line-height: 1.45;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: clamp(10px, 1.8vw, 22px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100vh;
+}
+.lz-app ::selection { background: var(--accent); color: var(--accent-ink); }
+
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:is(button, input, select, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+/* ---------- masthead ---------- */
+.masthead {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: stretch;
+  border-top: 3px solid var(--ink);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0 12px;
+}
+.plate { display: flex; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; }
+.plate h1 {
+  margin: 0;
+  font-family: var(--f-label);
+  font-weight: 700;
+  font-size: clamp(22px, 3.2vw, 34px);
+  line-height: 1;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.plate .sub {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-style: italic;
+}
+.plate .sub b { font-style: normal; font-weight: 600; }
+.tiles {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  justify-content: flex-end;
+  border-left: 1px solid var(--line);
+}
+.tile {
+  padding: 2px 18px 0;
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; justify-content: center;
+  min-width: 96px;
+}
+.tile .k {
+  font-family: var(--f-label);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.tile .v {
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(18px, 2.1vw, 24px);
+  font-weight: 600;
+  line-height: 1.2;
+}
+.tile.insight .v { color: var(--stamp); }
+.year-block {
+  display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+  padding-left: 18px;
+}
+.year-block .year {
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.year-block .date-sub {
+  font-family: var(--f-label);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- controls ---------- */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  padding: 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.cgroup { display: flex; align-items: center; gap: 8px; }
+.cgroup + .cgroup { border-left: 1px solid var(--line-soft); padding-left: 18px; }
+.btn {
+  font-family: var(--f-label);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--ink-2);
+  padding: 6px 12px;
+  border-radius: 2px;
+  transition: background 120ms ease, color 120ms ease;
+}
+.btn:hover { background: var(--line-soft); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); min-width: 84px; }
+.btn.primary:hover { filter: brightness(1.08); }
+.slider-wrap { display: flex; flex-direction: column; gap: 1px; min-width: 128px; }
+.slider-wrap .lab {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-family: var(--f-label);
+  text-transform: uppercase; letter-spacing: 0.11em;
+  font-size: 10.5px; color: var(--muted);
+}
+.slider-wrap .lab output {
+  font-family: var(--f-mono); font-variant-numeric: tabular-nums;
+  color: var(--ink); letter-spacing: 0; text-transform: none; font-size: 11px;
+}
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 18px; margin: 0;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px; background: var(--ink-2); border-radius: 1px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 12px; margin-top: -5px;
+  background: var(--accent); border: 1px solid var(--panel);
+  border-radius: 50%;
+}
+input[type="range"]::-moz-range-track { height: 2px; background: var(--ink-2); border-radius: 1px; }
+input[type="range"]::-moz-range-thumb {
+  width: 11px; height: 11px; background: var(--accent);
+  border: 1px solid var(--panel); border-radius: 50%;
+}
+.seed-input, .sel {
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 5px 7px;
+  border-radius: 2px;
+}
+.seed-input { width: 74px; }
+.cgroup .glab {
+  font-family: var(--f-label); text-transform: uppercase; letter-spacing: 0.11em;
+  font-size: 10.5px; color: var(--muted);
+}
+
+/* ---------- stage ---------- */
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 336px;
+  gap: 12px;
+  align-items: stretch;
+  min-height: 0;
+}
+.canvas-wrap {
+  position: relative;
+  border: 1px solid var(--line);
+  background: var(--canvas-bg);
+  height: clamp(430px, 64vh, 760px);
+  overflow: hidden;
+  min-width: 0;
+}
+#lzNet { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+.topic-legend {
+  position: absolute; top: 10px; left: 12px;
+  display: flex; flex-direction: column; gap: 3px;
+  pointer-events: none;
+  max-width: 46%;
+}
+.topic-legend .chip {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--f-label);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  font-size: 10px; color: var(--ink-2);
+  opacity: 0; transform: translateX(-6px);
+  transition: opacity 500ms ease, transform 500ms ease;
+}
+.topic-legend .chip.on { opacity: 1; transform: none; }
+.topic-legend .chip i {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--c, var(--muted)); flex: none;
+}
+.canvas-note {
+  position: absolute; bottom: 8px; left: 12px;
+  font-family: var(--f-label); text-transform: uppercase; letter-spacing: 0.12em;
+  font-size: 9.5px; color: var(--muted);
+  pointer-events: none;
+}
+
+/* ---------- index card inspector ---------- */
+.index-card {
+  position: absolute; right: 14px; bottom: 14px;
+  width: min(348px, calc(100% - 28px));
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 21px, var(--card-rule) 21px 22px),
+    var(--card-paper);
+  background-position: 0 46px;
+  color: var(--card-ink);
+  border: 1px solid rgba(60,60,50,0.35);
+  border-radius: 2px;
+  box-shadow: 0 10px 26px var(--shadow), 0 2px 4px var(--shadow);
+  transform: rotate(-0.5deg);
+  padding: 10px 14px 14px;
+  font-family: var(--f-mono);
+  font-size: 12.5px;
+  line-height: 22px;
+}
+.index-card::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 34px;
+  border-top: 1.5px solid var(--card-head);
+}
+.index-card .ic-top {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding-bottom: 4px;
+}
+.index-card .ic-id {
+  font-weight: 700; font-size: 14px; letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.index-card .ic-meta { font-size: 10.5px; color: #6a6d60; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.index-card .ic-meta i { width: 7px; height: 7px; border-radius: 50%; background: var(--c, #999); display: inline-block; }
+.index-card .ic-title { font-weight: 700; margin: 8px 0 0; }
+.index-card .ic-body { margin: 0; }
+.index-card .ic-links { margin: 8px 0 0; padding: 0; list-style: none; }
+.index-card .ic-links .lk-head { color: #6a6d60; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; }
+.index-card .ic-links button {
+  background: none; border: none; padding: 0;
+  font: inherit; color: #274e75;
+  text-decoration: underline; text-underline-offset: 2px;
+  display: inline;
+  text-align: left;
+}
+.index-card .ic-links button:hover { color: #0f3055; }
+.index-card .ic-close {
+  position: absolute; top: 5px; right: 7px;
+  background: none; border: none; color: #6a6d60;
+  font-family: var(--f-label); font-size: 13px; line-height: 1;
+  padding: 4px 6px;
+}
+.index-card .ic-close:hover { color: var(--card-ink); }
+
+/* ---------- summary overlay ---------- */
+.summary {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--canvas-bg) 62%, transparent);
+  backdrop-filter: blur(2px);
+  padding: 18px;
+}
+.summary .sheet {
+  background: var(--panel);
+  border: 1px solid var(--ink-2);
+  box-shadow: 0 18px 44px var(--shadow);
+  max-width: 520px; width: 100%;
+  max-height: 100%; overflow-y: auto;
+  padding: 20px 24px 18px;
+}
+.summary h2 {
+  margin: 0 0 2px;
+  font-family: var(--f-label);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: 19px;
+}
+.summary .range { color: var(--muted); font-family: var(--f-mono); font-size: 12px; margin: 0 0 12px; font-variant-numeric: tabular-nums; }
+.summary dl {
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 5px 16px; margin: 0 0 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.summary dt { color: var(--ink-2); font-size: 13.5px; }
+.summary dd {
+  margin: 0; text-align: right;
+  font-family: var(--f-mono); font-variant-numeric: tabular-nums;
+  font-size: 13px; font-weight: 600;
+}
+.summary dd small { color: var(--muted); font-weight: 400; }
+.summary .quote {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  font-style: italic; color: var(--ink-2); font-size: 13.5px;
+  margin: 0 0 14px;
+}
+.summary .row { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ---------- sidebar ---------- */
+.side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 10px 12px 12px;
+}
+.panel h3 {
+  margin: 0 0 6px;
+  font-family: var(--f-label);
+  text-transform: uppercase; letter-spacing: 0.13em;
+  font-size: 11px; font-weight: 700;
+  color: var(--ink-2);
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+}
+.panel h3 .cur {
+  font-family: var(--f-mono); font-variant-numeric: tabular-nums;
+  font-size: 11px; color: var(--muted); letter-spacing: 0; text-transform: none; font-weight: 400;
+}
+.chart-legend {
+  display: flex; gap: 14px; margin: 0 0 4px;
+  font-family: var(--f-label); text-transform: uppercase; letter-spacing: 0.1em;
+  font-size: 10px; color: var(--ink-2);
+}
+.chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.chart-legend i { width: 9px; height: 3px; background: var(--c); display: inline-block; }
+.panel canvas { width: 100%; height: 118px; display: block; }
+#lzChartRate { height: 96px; }
+
+.hubs { display: flex; flex-direction: column; gap: 0; }
+.hub {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  gap: 8px; align-items: baseline;
+  padding: 4px 0;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12.5px;
+  min-width: 0;
+}
+.hub:first-child { border-top: none; }
+.hub .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--muted)); align-self: center; }
+.hub .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub .t .hid { font-family: var(--f-mono); font-size: 11px; color: var(--muted); margin-right: 6px; font-variant-numeric: tabular-nums; }
+.hub .d {
+  font-family: var(--f-mono); font-variant-numeric: tabular-nums;
+  font-size: 11.5px; color: var(--ink-2);
+}
+
+/* ---------- register / log ---------- */
+.register { background: var(--panel); border: 1px solid var(--line); }
+.register h3 {
+  margin: 0; padding: 9px 14px 8px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--f-label); text-transform: uppercase; letter-spacing: 0.13em;
+  font-size: 11px; color: var(--ink-2);
+  display: flex; justify-content: space-between;
+}
+.register h3 .cur { font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: 0; text-transform: none; font-weight: 400; font-variant-numeric: tabular-nums; }
+.log { max-height: 176px; overflow-y: auto; padding: 4px 14px 8px; }
+.ev {
+  display: grid; grid-template-columns: 44px 1fr; gap: 12px;
+  padding: 4px 0;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+.ev:first-child { border-top: none; }
+.ev .y {
+  font-family: var(--f-mono); font-variant-numeric: tabular-nums;
+  font-size: 12px; color: var(--muted); padding-top: 1px;
+}
+.ev .x { color: var(--ink-2); }
+.ev .x b { color: var(--ink); font-weight: 600; }
+.ev.insight .x { color: var(--ink); }
+.ev.insight .x .no {
+  font-family: var(--f-mono); font-size: 11px; color: var(--stamp);
+  border: 1px solid var(--stamp); border-radius: 2px;
+  padding: 0 4px; margin-right: 7px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ev .x .cid { font-family: var(--f-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1020px) {
+  .stage { grid-template-columns: 1fr; }
+  .side { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+  .masthead { grid-template-columns: 1fr auto; }
+  .tiles { grid-column: 1 / -1; border-left: none; justify-content: flex-start; }
+  .tile:first-child { padding-left: 0; }
+}
+@media (max-width: 640px) {
+  .side { grid-template-columns: 1fr; }
+  .canvas-wrap { height: min(72vh, 520px); }
+  .index-card { right: 8px; bottom: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topic-legend .chip { transition: none; }
+}
+</style>
+
+<div class="lz-app">
+  <header class="masthead">
+    <div class="plate">
+      <h1>The Luhmann Engine</h1>
+      <p class="sub">A slip-box, simulated &mdash; <b>Zettelkasten II</b>, Bielefeld school. Time grows outward; red threads are insights.</p>
+    </div>
+    <div class="tiles" role="group" aria-label="Live totals">
+      <div class="tile"><span class="k">Cards</span><span class="v" id="lzTCards">0</span></div>
+      <div class="tile"><span class="k">Links</span><span class="v" id="lzTLinks">0</span></div>
+      <div class="tile insight"><span class="k">Insights</span><span class="v" id="lzTInsights">0</span></div>
+    </div>
+    <div class="year-block">
+      <div class="year" id="lzYear">1951</div>
+      <div class="date-sub" id="lzDate">1 Jan &middot; day 0</div>
+    </div>
+  </header>
+
+  <div class="controls" role="group" aria-label="Simulation controls">
+    <div class="cgroup">
+      <button class="btn primary" id="lzPlay">Begin</button>
+      <button class="btn" id="lzStep" title="Advance one year instantly">+1 year</button>
+    </div>
+    <div class="cgroup">
+      <div class="slider-wrap">
+        <span class="lab"><label for="lzSpeed">Speed</label><output id="lzSpeedV">&times;120</output></span>
+        <input type="range" id="lzSpeed" min="0" max="100" value="77" step="1">
+      </div>
+      <div class="slider-wrap">
+        <span class="lab"><label for="lzProd" title="Cards written per day, on average">Productivity</label><output id="lzProdV">1.0/day</output></span>
+        <input type="range" id="lzProd" min="2" max="55" value="10" step="1">
+      </div>
+      <div class="slider-wrap">
+        <span class="lab"><label for="lzCur" title="How quickly the researcher&rsquo;s attention drifts between themes">Curiosity</label><output id="lzCurV">45%</output></span>
+        <input type="range" id="lzCur" min="0" max="100" value="45" step="1">
+      </div>
+    </div>
+    <div class="cgroup">
+      <span class="glab">Span</span>
+      <select class="sel" id="lzSpan" aria-label="Simulated span">
+        <option value="46" selected>1951&ndash;1997</option>
+        <option value="26">1951&ndash;1977</option>
+        <option value="11">1951&ndash;1962</option>
+      </select>
+      <span class="glab"><label for="lzSeed">Seed</label></span>
+      <input class="seed-input" id="lzSeed" type="number" value="1927" min="1" max="999999" step="1">
+      <button class="btn" id="lzRestart">Restart</button>
+      <button class="btn" id="lzReseed" title="Random seed, then restart">Reroll</button>
+    </div>
+    <div class="cgroup">
+      <button class="btn" id="lzFit" title="Re-centre the view">Fit</button>
+      <span class="glab"><label for="lzMotion">Motion</label></span>
+      <select class="sel" id="lzMotion">
+        <option value="full">Full</option>
+        <option value="calm">Calm</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="stage">
+    <section class="canvas-wrap" aria-label="Network view">
+      <canvas id="lzNet" role="img" aria-label="Growing network of index cards, drawn as concentric growth rings: time increases outward, colours are themes, red chords are recorded insights. The register below and the hubs list give a textual account."></canvas>
+      <div class="topic-legend" id="lzLegend" aria-hidden="true"></div>
+      <div class="canvas-note">drag to pan &middot; wheel to zoom &middot; click a card</div>
+
+      <aside class="index-card" id="lzCard" hidden aria-label="Card inspector">
+        <button class="ic-close" id="lzCardClose" aria-label="Close card">&times;</button>
+        <div class="ic-top">
+          <span class="ic-id" id="lzCardId">21/3d7</span>
+          <span class="ic-meta"><i id="lzCardDot"></i><span id="lzCardMeta"></span></span>
+        </div>
+        <p class="ic-title" id="lzCardTitle"></p>
+        <p class="ic-body" id="lzCardBody"></p>
+        <ul class="ic-links" id="lzCardLinks"></ul>
+      </aside>
+
+      <div class="summary" id="lzSummary" hidden>
+        <div class="sheet" role="dialog" aria-label="End of simulation summary">
+          <h2>The box is closed</h2>
+          <p class="range" id="lzSumRange"></p>
+          <dl id="lzSumList"></dl>
+          <p class="quote">&ldquo;One cannot think without writing.&rdquo; &mdash; after N. Luhmann, <i>Kommunikation mit Zettelk&auml;sten</i></p>
+          <div class="row">
+            <button class="btn" id="lzSumInspect">Inspect the archive</button>
+            <button class="btn primary" id="lzSumAgain">Run again</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <h3><span>Cards &amp; links</span><span class="cur" id="lzC1Cur"></span></h3>
+        <div class="chart-legend" aria-hidden="true">
+          <span><i style="--c:var(--ch-cards)"></i>cards</span>
+          <span><i style="--c:var(--ch-links)"></i>links</span>
+        </div>
+        <canvas id="lzChartCum" aria-hidden="true"></canvas>
+      </section>
+      <section class="panel">
+        <h3><span>Insight rate</span><span class="cur" id="lzC2Cur">per year, trailing 12 mo</span></h3>
+        <canvas id="lzChartRate" aria-hidden="true"></canvas>
+      </section>
+      <section class="panel">
+        <h3><span>Top hubs</span><span class="cur">by links</span></h3>
+        <div class="hubs" id="lzHubs"></div>
+      </section>
+    </aside>
+  </div>
+
+  <section class="register">
+    <h3><span>Register of events</span><span class="cur" id="lzLogCount">0 entries</span></h3>
+    <div class="log" id="lzLog"></div>
+  </section>
+</div>
+
+<script>
+'use strict';
+(function () {
+
+/* ================= utilities ================= */
+var TAU = Math.PI * 2;
+function mulberry32(a) {
+  a = a >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gauss(rng) {
+  var u = 0, v = 0;
+  while (u === 0) u = rng();
+  while (v === 0) v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * v);
+}
+function poisson(lambda, rng) {
+  var L = Math.exp(-lambda), k = 0, p = 1;
+  do { k++; p *= rng(); } while (p > L);
+  return k - 1;
+}
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function angDiff(a, b) {
+  var d = (a - b) % TAU;
+  if (d > Math.PI) d -= TAU;
+  if (d < -Math.PI) d += TAU;
+  return d;
+}
+function lerpAngle(a, b, t) { return a + angDiff(b, a) * t; }
+function fmt(n) { return n.toLocaleString('en-US'); }
+function hexA(hex, a) {
+  hex = hex.trim();
+  var r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+}
+function pick(arr, rng) { return arr[Math.floor(rng() * arr.length) % arr.length]; }
+var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/* ================= content: themes, authors, phrasebooks ================= */
+var TOPICS = [
+  { name: 'Systems Theory', emerge: 1951, angle: -1.22,
+    c: ['system and environment', 'complexity reduction', 'boundary maintenance', 'functional equivalence', 'contingency', 'self-organization', 'feedback', 'the whole and its parts', 'input and output', 'equilibrium models', 'system differentiation', 'requisite variety'] },
+  { name: 'Communication Theory', emerge: 1957, angle: -0.44,
+    c: ['double contingency', 'the improbability of communication', 'information, utterance, understanding', 'interaction among those present', 'themes and contributions', 'language and gesture', 'misunderstanding as resource', 'writing and distance', 'communication about communication', 'selection and connectivity', 'the addressee', 'silence as communication'] },
+  { name: 'Law & Legitimation', emerge: 1951, angle: 2.70,
+    c: ['legitimation by procedure', 'positive law', 'normative expectations', 'counterfactual stability', 'legal validity', 'codification', 'contract and trust', 'sanction and expectation', 'the judge’s discretion', 'rights as institutions', 'constitutional order', 'justice as formula'] },
+  { name: 'Organization', emerge: 1952, angle: -2.00,
+    c: ['formal organization', 'membership rules', 'decision premises', 'administrative discretion', 'hierarchy of offices', 'informal networks', 'the file as memory', 'bureaucratic rationality', 'committee decision-making', 'planning and its limits', 'career and motive', 'organizational routines'] },
+  { name: 'Epistemology & Observation', emerge: 1954, angle: 1.92,
+    c: ['second-order observation', 'the blind spot', 'distinction and indication', 'observing the observer', 'phenomenological reduction', 'horizon and intention', 'constructivism', 'knowledge as expectation', 'description and self-description', 're-entry of the form', 'the unity of a distinction', 'latent structures'] },
+  { name: 'Functional Differentiation', emerge: 1962, angle: -2.72,
+    c: ['functional differentiation', 'stratified societies', 'center and periphery', 'inclusion and exclusion', 'segmentary order', 'world society', 'the primacy of function', 'subsystem autonomy', 'evolutionary achievements', 'semantic correlates', 'structural transformation', 'modernity’s unity'] },
+  { name: 'Autopoiesis & Self-Reference', emerge: 1973, angle: 0.86,
+    c: ['autopoiesis', 'operational closure', 'self-reference', 'recursive reproduction', 'structural coupling', 'tautology and paradox', 'observing systems', 'elements as events', 'temporalized complexity', 'circular causality', 'the system’s own past', 'de-paradoxification'] },
+  { name: 'Meaning & Media', emerge: 1968, angle: 0.22,
+    c: ['meaning as medium', 'the horizon of possibility', 'symbolically generalized media', 'money as communication', 'power as medium', 'truth as medium', 'love as symbolic code', 'medium and form', 'binary coding', 'program and code', 'generalized expectations', 'the reality of the mass media'] }
+];
+var AUTHORS = [
+  { n: 'Parsons', y: 1949 }, { n: 'Weber', y: 1949 }, { n: 'Durkheim', y: 1949 },
+  { n: 'Simmel', y: 1949 }, { n: 'Husserl', y: 1950 }, { n: 'Kant', y: 1949 },
+  { n: 'Hegel', y: 1949 }, { n: 'Gehlen', y: 1950 }, { n: 'Schelsky', y: 1953 },
+  { n: 'Shannon', y: 1951 }, { n: 'Wiener', y: 1951 }, { n: 'Ashby', y: 1957 },
+  { n: 'Habermas', y: 1963 }, { n: 'Blumenberg', y: 1966 }, { n: 'Spencer-Brown', y: 1970 },
+  { n: 'von Foerster', y: 1971 }, { n: 'Maturana', y: 1974 }, { n: 'Varela', y: 1976 },
+  { n: 'Koselleck', y: 1975 }, { n: 'Serres', y: 1982 }
+];
+function capFirst(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+var TITLE_TMPL = [
+  function (c1, c2, a) { return 'On the concept of ' + c1; },
+  function (c1, c2, a) { return capFirst(c1) + ' and ' + c2; },
+  function (c1, c2, a) { return capFirst(c1) + ' as a problem of ' + c2; },
+  function (c1, c2, a) { return 'Notes on ' + a + ': ' + c1; },
+  function (c1, c2, a) { return 'The paradox of ' + c1; },
+  function (c1, c2, a) { return capFirst(c1) + ' — a distinction?'; },
+  function (c1, c2, a) { return 'Preconditions of ' + c1; },
+  function (c1, c2, a) { return 'Can ' + c1 + ' be observed?'; },
+  function (c1, c2, a) { return 'Against ' + a + ' on ' + c1; },
+  function (c1, c2, a) { return capFirst(c1) + ': first thoughts'; },
+  function (c1, c2, a) { return 'The improbability of ' + c1; },
+  function (c1, c2, a) { return capFirst(c1) + ' revisited'; }
+];
+var BODY_S1 = [
+  function (c1, c2, a) { return 'Every account of ' + c1 + ' presupposes a distinction that it cannot itself observe.'; },
+  function (c1, c2, a) { return a + ' treats ' + c1 + ' as given; the slip-box suggests it is an achievement.'; },
+  function (c1, c2, a) { return 'The relation between ' + c1 + ' and ' + c2 + ' is not one of parts and wholes but of system and environment.'; },
+  function (c1, c2, a) { return 'If ' + c1 + ' is improbable, the interesting question is how it is nonetheless made probable.'; },
+  function (c1, c2, a) { return 'Perhaps ' + c1 + ' is best read as a special case of ' + c2 + ' — or the reverse.'; },
+  function (c1, c2, a) { return 'What ' + a + ' calls ' + c1 + ' dissolves, on closer reading, into ' + c2 + '.'; }
+];
+var BODY_S2 = [
+  function (c1, c2, a) { return 'Follow-up: does the same hold for ' + c2 + '?'; },
+  function (c1, c2, a) { return 'This may be a terminological problem only — or the beginning of a new thread.'; },
+  function (c1, c2, a) { return 'Cf. ' + a + ', though the conclusion drawn here differs.'; },
+  function (c1, c2, a) { return 'To be pursued where the box next surprises me.'; },
+  function (c1, c2, a) { return 'A card against forgetting; the connection matters more than the claim.'; }
+];
+var MILESTONES = [100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 90000];
+var MILESTONE_NOTE = {
+  100: 'The box outgrows memory; the register becomes indispensable.',
+  1000: 'Retrieval now depends on links, not on recall.',
+  10000: 'The box begins to answer questions it was never asked.',
+  90000: 'Luhmann’s own count is reached.'
+};
+
+/* ================= DOM ================= */
+function $(id) { return document.getElementById(id); }
+var el = {
+  net: $('lzNet'), legend: $('lzLegend'),
+  tCards: $('lzTCards'), tLinks: $('lzTLinks'), tInsights: $('lzTInsights'),
+  year: $('lzYear'), date: $('lzDate'),
+  play: $('lzPlay'), step: $('lzStep'),
+  speed: $('lzSpeed'), speedV: $('lzSpeedV'),
+  prod: $('lzProd'), prodV: $('lzProdV'),
+  cur: $('lzCur'), curV: $('lzCurV'),
+  span: $('lzSpan'), seed: $('lzSeed'),
+  restart: $('lzRestart'), reseed: $('lzReseed'),
+  fit: $('lzFit'), motion: $('lzMotion'),
+  card: $('lzCard'), cardClose: $('lzCardClose'), cardId: $('lzCardId'),
+  cardDot: $('lzCardDot'), cardMeta: $('lzCardMeta'),
+  cardTitle: $('lzCardTitle'), cardBody: $('lzCardBody'), cardLinks: $('lzCardLinks'),
+  summary: $('lzSummary'), sumRange: $('lzSumRange'), sumList: $('lzSumList'),
+  sumInspect: $('lzSumInspect'), sumAgain: $('lzSumAgain'),
+  chartCum: $('lzChartCum'), chartRate: $('lzChartRate'),
+  c1Cur: $('lzC1Cur'), c2Cur: $('lzC2Cur'),
+  hubs: $('lzHubs'), log: $('lzLog'), logCount: $('lzLogCount')
+};
+var ctx = el.net.getContext('2d');
+
+/* ================= theme ================= */
+var theme = {};
+function refreshTheme() {
+  var cs = getComputedStyle(document.documentElement);
+  function v(name, fb) { var s = cs.getPropertyValue(name).trim(); return s || fb; }
+  theme.topics = [];
+  for (var i = 0; i < 8; i++) theme.topics.push(v('--t' + i, '#888888'));
+  theme.canvasBg = v('--canvas-bg', '#e8ebe1');
+  theme.ink = v('--ink', '#20241f');
+  theme.ink2 = v('--ink-2', '#565b50');
+  theme.muted = v('--muted', '#878c7f');
+  theme.link = v('--net-link', 'rgba(32,36,31,0.16)');
+  theme.ring = v('--net-ring', 'rgba(32,36,31,0.10)');
+  theme.stamp = v('--stamp', '#bd3a2a');
+  theme.accent = v('--accent', '#31684d');
+  theme.chCards = v('--ch-cards', '#2a78d6');
+  theme.chLinks = v('--ch-links', '#1baf7a');
+  theme.gridline = v('--line-soft', '#dfe2d6');
+  theme.panel = v('--panel', '#f7f8f2');
+}
+
+/* ================= state ================= */
+var S = null;              // simulation state
+var cam = { scale: 1, cx: 0, cy: 0, auto: true };
+var playing = false;
+var finished = false;
+var selected = -1;
+var flashes = [];          // {x1,y1,x2,y2,x0,y0,t0}
+var hubCache = [];         // [{i, d}]
+var motionCalm = false;
+var frameCost = 16;        // rolling avg, for adaptive quality
+
+var CELL = 30;             // frozen spatial-grid cell (world units)
+var ACTIVE_MAX = 340;      // unfrozen tail size
+var REST = 15;             // spring rest length
+
+function newState(seed, spanYears, startYear) {
+  var capacity = 8192;
+  return {
+    seed: seed >>> 0,
+    rng: mulberry32(seed),
+    startYear: startYear,
+    endYear: startYear + spanYears,
+    totalDays: Math.round(spanYears * 365.25),
+    day: 0, dayFloat: 0, year: startYear,
+    n: 0, cap: capacity, linkCount: 0, topCounter: 0,
+    X: new Float32Array(capacity), Y: new Float32Array(capacity),
+    VX: new Float32Array(capacity), VY: new Float32Array(capacity),
+    TH: new Float32Array(capacity),
+    DEG: new Int32Array(capacity), TOP: new Int8Array(capacity),
+    BORN: new Int32Array(capacity), DEPTH: new Int8Array(capacity),
+    PAR: new Int32Array(capacity), CHILDN: new Int16Array(capacity),
+    STAMPR: new Float32Array(capacity), FROZ: new Uint8Array(capacity),
+    VIS: new Int32Array(capacity), visStamp: 0,
+    adj: [], ids: [], titles: [],
+    active: [], activeHead: 0,
+    grid: new Map(),
+    focusA: TOPICS[0].angle,
+    emerged: TOPICS.map(function (t) { return t.emerge <= startYear; }),
+    insights: [], insightDays: [],
+    chords: [],
+    samples: { d: [], cards: [], links: [], rate: [] }, nextSample: 0,
+    cardsPerYear: new Int32Array(spanYears + 2),
+    milestoneIdx: 0, lastDriftLogYear: -1,
+    logEntries: 0
+  };
+}
+function grow() {
+  var nc = S.cap * 2;
+  function gF(a) { var b = new Float32Array(nc); b.set(a); return b; }
+  function gI(a) { var b = new Int32Array(nc); b.set(a); return b; }
+  S.X = gF(S.X); S.Y = gF(S.Y); S.VX = gF(S.VX); S.VY = gF(S.VY);
+  S.TH = gF(S.TH); S.STAMPR = gF(S.STAMPR);
+  S.DEG = gI(S.DEG); S.BORN = gI(S.BORN); S.PAR = gI(S.PAR); S.VIS = gI(S.VIS);
+  var t8 = new Int8Array(nc); t8.set(S.TOP); S.TOP = t8;
+  var d8 = new Int8Array(nc); d8.set(S.DEPTH); S.DEPTH = d8;
+  var c16 = new Int16Array(nc); c16.set(S.CHILDN); S.CHILDN = c16;
+  var f8 = new Uint8Array(nc); f8.set(S.FROZ); S.FROZ = f8;
+  S.cap = nc;
+}
+
+/* time-as-radius: ring radius for a given day */
+function ringR(day) { return 58 + 1.15 * Math.pow(day + 40, 0.72); }
+function dayToDate(day) {
+  var d = new Date(Date.UTC(S.startYear, 0, 1) + day * 86400000);
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate() };
+}
+
+/* ================= ids, titles, bodies ================= */
+function letterSeq(k) {
+  var s = '';
+  while (k > 0) { k--; s = String.fromCharCode(97 + (k % 26)) + s; k = Math.floor(k / 26); }
+  return s;
+}
+function makeId(i, parent) {
+  if (parent < 0) { S.topCounter++; S.DEPTH[i] = 0; return String(S.topCounter); }
+  var depth = Math.min(126, S.DEPTH[parent] + 1);
+  S.DEPTH[i] = depth;
+  var k = ++S.CHILDN[parent];
+  var token = (depth % 2 === 1) ? String(k) : letterSeq(k);
+  return S.ids[parent] + (depth === 1 ? '/' : '') + token;
+}
+function cardRng(i) { return mulberry32((S.seed ^ Math.imul(i + 1, 2654435761)) >>> 0); }
+function authorFor(year, rng) {
+  var ok = [];
+  for (var i = 0; i < AUTHORS.length; i++) if (AUTHORS[i].y <= year) ok.push(AUTHORS[i].n);
+  return pick(ok, rng);
+}
+function conceptsFor(i, rng) {
+  var t = TOPICS[S.TOP[i]];
+  var c1 = pick(t.c, rng);
+  var bank2 = t.c;
+  var nbrs = S.adj[i];
+  if (nbrs && nbrs.length && rng() < 0.5) bank2 = TOPICS[S.TOP[nbrs[Math.floor(rng() * nbrs.length)]]].c;
+  var c2 = pick(bank2, rng);
+  var guard = 0;
+  while (c2 === c1 && guard++ < 4) c2 = pick(bank2, rng);
+  return [c1, c2];
+}
+function titleFor(i) {
+  if (S.titles[i]) return S.titles[i];
+  var rng = cardRng(i);
+  var year = dayToDate(S.BORN[i]).y;
+  var cc = conceptsFor(i, rng);
+  var t = pick(TITLE_TMPL, rng)(cc[0], cc[1], authorFor(year, rng));
+  S.titles[i] = t;
+  return t;
+}
+function bodyFor(i) {
+  var rng = cardRng(i + 7);
+  var year = dayToDate(S.BORN[i]).y;
+  var cc = conceptsFor(i, rng);
+  var a = authorFor(year, rng);
+  return pick(BODY_S1, rng)(cc[0], cc[1], a) + ' ' + pick(BODY_S2, rng)(cc[1], cc[0], a);
+}
+
+/* ================= frozen spatial grid ================= */
+function gridKey(x, y) {
+  var cx = Math.floor(x / CELL) + 2048, cy = Math.floor(y / CELL) + 2048;
+  return cx * 8192 + cy;
+}
+function gridInsert(i) {
+  var k = gridKey(S.X[i], S.Y[i]);
+  var cell = S.grid.get(k);
+  if (cell) cell.push(i); else S.grid.set(k, [i]);
+}
+function gridNear(x, y, out) {
+  out.length = 0;
+  var cx = Math.floor(x / CELL) + 2048, cy = Math.floor(y / CELL) + 2048;
+  for (var dx = -1; dx <= 1; dx++) for (var dy = -1; dy <= 1; dy++) {
+    var cell = S.grid.get((cx + dx) * 8192 + (cy + dy));
+    if (cell) for (var j = 0; j < cell.length; j++) out.push(cell[j]);
+  }
+  return out;
+}
+
+/* ================= static (frozen) layer ================= */
+var off = document.createElement('canvas');
+var offCtx = off.getContext('2d');
+var offExtent = 340, offP = 1;
+function w2o(v) { return (v + offExtent) * offP; }
+function nodeR(i) { return Math.min(6, 1.15 + 0.5 * Math.sqrt(S.DEG[i])); }
+function linkStampP() { return S.n < 30000 ? 1 : 30000 / S.n; }
+function keepLink(i, j) {
+  if (S.n < 30000) return true;
+  return (((Math.imul(i + 1, 2654435761) ^ Math.imul(j + 1, 40503)) >>> 8) % 1000) < linkStampP() * 1000;
+}
+function stampDot(i) {
+  var r = nodeR(i);
+  S.STAMPR[i] = r;
+  offCtx.fillStyle = theme.topics[S.TOP[i]];
+  var px = w2o(S.X[i]), py = w2o(S.Y[i]), pr = Math.max(0.7, r * offP);
+  if (pr < 1.4) offCtx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+  else { offCtx.beginPath(); offCtx.arc(px, py, pr, 0, TAU); offCtx.fill(); }
+}
+function stampEdge(i, j) {
+  if (!keepLink(i, j)) return;
+  offCtx.strokeStyle = theme.link;
+  offCtx.lineWidth = Math.max(0.5, 0.7 * offP);
+  offCtx.beginPath();
+  offCtx.moveTo(w2o(S.X[i]), w2o(S.Y[i]));
+  offCtx.lineTo(w2o(S.X[j]), w2o(S.Y[j]));
+  offCtx.stroke();
+}
+function stampChord(a, b) {
+  offCtx.strokeStyle = hexA(theme.stamp, 0.34);
+  offCtx.lineWidth = Math.max(0.6, 0.9 * offP);
+  offCtx.beginPath();
+  offCtx.moveTo(w2o(S.X[a]), w2o(S.Y[a]));
+  offCtx.lineTo(w2o(S.X[b]), w2o(S.Y[b]));
+  offCtx.stroke();
+}
+function rebuildStatic() {
+  var size = Math.min(3840, Math.max(640, Math.ceil(2 * offExtent)));
+  offP = size / (2 * offExtent);
+  off.width = size; off.height = size;
+  offCtx.clearRect(0, 0, size, size);
+  if (!S) return;
+  var i, j, nb;
+  offCtx.strokeStyle = theme.link;
+  offCtx.lineWidth = Math.max(0.5, 0.7 * offP);
+  offCtx.beginPath();
+  var seg = 0;
+  for (i = 0; i < S.n; i++) {
+    if (!S.FROZ[i]) continue;
+    nb = S.adj[i];
+    for (j = 0; j < nb.length; j++) {
+      var o = nb[j];
+      if (o > i && S.FROZ[o] && keepLink(i, o)) {
+        offCtx.moveTo(w2o(S.X[i]), w2o(S.Y[i]));
+        offCtx.lineTo(w2o(S.X[o]), w2o(S.Y[o]));
+        if (++seg >= 5000) { offCtx.stroke(); offCtx.beginPath(); seg = 0; }
+      }
+    }
+  }
+  offCtx.stroke();
+  for (var c = 0; c < S.chords.length; c++) {
+    var ch = S.chords[c];
+    stampChord(ch[0], ch[1]);
+  }
+  for (var t = 0; t < 8; t++) {
+    offCtx.fillStyle = theme.topics[t];
+    for (i = 0; i < S.n; i++) {
+      if (!S.FROZ[i] || S.TOP[i] !== t) continue;
+      var r = nodeR(i); S.STAMPR[i] = r;
+      var px = w2o(S.X[i]), py = w2o(S.Y[i]), pr = Math.max(0.7, r * offP);
+      if (pr < 1.4) offCtx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+      else { offCtx.beginPath(); offCtx.arc(px, py, pr, 0, TAU); offCtx.fill(); }
+    }
+  }
+}
+function ensureExtent() {
+  var need = ringR(S.day) + 160;
+  if (need > offExtent * 0.96) {
+    offExtent = need * 1.7;
+    rebuildStatic();
+  }
+}
+function freezeNode(i) {
+  S.FROZ[i] = 1;
+  gridInsert(i);
+  stampDot(i);
+  var nb = S.adj[i];
+  for (var j = 0; j < nb.length; j++) if (S.FROZ[nb[j]]) stampEdge(i, nb[j]);
+}
+
+/* ================= engine: cards, links, insights ================= */
+var scratch = [];
+function chooseTargets(thProv, day, m) {
+  var n = S.n;
+  var cand = scratch; cand.length = 0;
+  var seen = {};
+  var k, idx;
+  for (k = 0; k < 22; k++) {
+    idx = n - 1 - Math.floor(Math.pow(S.rng(), 3) * n);
+    if (idx >= 0 && idx < n && !seen[idx]) { seen[idx] = 1; cand.push(idx); }
+  }
+  for (k = 0; k < 5; k++) {
+    idx = Math.floor(S.rng() * n);
+    if (!seen[idx]) { seen[idx] = 1; cand.push(idx); }
+  }
+  for (k = 0; k < hubCache.length && k < 5; k++) {
+    idx = hubCache[k].i;
+    if (idx < n && !seen[idx]) { seen[idx] = 1; cand.push(idx); }
+  }
+  if (!cand.length) return [];
+  var weights = new Array(cand.length), total = 0;
+  for (k = 0; k < cand.length; k++) {
+    var c = cand[k];
+    var sim = (Math.cos(angDiff(thProv, S.TH[c])) + 1) * 0.5;
+    var score = 1.05 * Math.log1p(S.DEG[c])         // preferential attachment
+              + 3.1 * sim * sim                      // topical affinity
+              + 1.0 * Math.exp(-(day - S.BORN[c]) / 2200); // recency
+    weights[k] = Math.exp(score);
+    total += weights[k];
+  }
+  var out = [], tries = 0;
+  while (out.length < m && tries++ < 40) {
+    var r = S.rng() * total, acc = 0, chosen = -1;
+    for (k = 0; k < cand.length; k++) { acc += weights[k]; if (r <= acc) { chosen = cand[k]; break; } }
+    if (chosen < 0) chosen = cand[cand.length - 1];
+    if (out.indexOf(chosen) === -1) out.push(chosen);
+  }
+  return out;
+}
+function distantAtLeast4(a, b) {
+  if (a === b) return false;
+  var stamp = ++S.visStamp;
+  S.VIS[a] = stamp;
+  var frontier = [a], visited = 1;
+  for (var depth = 0; depth < 3; depth++) {
+    var next = [];
+    for (var f = 0; f < frontier.length; f++) {
+      var nb = S.adj[frontier[f]];
+      for (var j = 0; j < nb.length; j++) {
+        var o = nb[j];
+        if (o === b) return false;
+        if (S.VIS[o] !== stamp) {
+          S.VIS[o] = stamp;
+          next.push(o);
+          if (++visited > 2600) return false; // too dense to be sure — be conservative
+        }
+      }
+    }
+    frontier = next;
+    if (!frontier.length) break;
+  }
+  return true;
+}
+function nearestEmergedTopic(th) {
+  var best = 0, bestD = Infinity;
+  for (var t = 0; t < TOPICS.length; t++) {
+    if (!S.emerged[t]) continue;
+    var d = Math.abs(angDiff(th, TOPICS[t].angle));
+    if (d < bestD) { bestD = d; best = t; }
+  }
+  return best;
+}
+function createCard(day) {
+  if (S.n >= S.cap) grow();
+  var i = S.n;
+  var curiosity = Number(el.cur.value) / 100;
+  var thProv = S.focusA + gauss(S.rng) * (0.18 + 0.35 * curiosity);
+  var newThread = (S.n === 0) || (S.rng() < 0.028);
+  var targets = [];
+  if (!newThread && S.n > 0) {
+    var m = 1 + (S.rng() < 0.55 ? 1 : 0) + (S.rng() < 0.2 ? 1 : 0);
+    targets = chooseTargets(thProv, day, Math.min(m, S.n));
+  }
+  // topic vector (angle on the thematic circle)
+  var th = thProv;
+  if (targets.length) th = lerpAngle(S.TH[targets[0]], thProv, 0.3 + 0.4 * curiosity);
+  S.n++;
+  S.TH[i] = th;
+  S.BORN[i] = day;
+  S.TOP[i] = nearestEmergedTopic(th);
+  S.DEG[i] = 0; S.FROZ[i] = 0; S.CHILDN[i] = 0; S.STAMPR[i] = 0;
+  S.titles[i] = undefined;
+  // insight detection BEFORE wiring the new card in
+  var insight = null;
+  if (targets.length >= 2) {
+    outer:
+    for (var p = 0; p < targets.length - 1; p++) {
+      for (var q = p + 1; q < targets.length; q++) {
+        if (distantAtLeast4(targets[p], targets[q])) {
+          insight = [targets[p], targets[q]];
+          break outer;
+        }
+      }
+    }
+  }
+  // wire links
+  S.adj[i] = targets.slice();
+  for (var t = 0; t < targets.length; t++) {
+    var tg = targets[t];
+    S.adj[tg].push(i);
+    S.DEG[tg]++; S.DEG[i]++;
+    S.linkCount++;
+    if (S.FROZ[tg]) {
+      var nr = nodeR(tg);
+      if (nr - S.STAMPR[tg] > 0.55) stampDot(tg); // hubs keep growing on the static layer
+    }
+  }
+  // id
+  var parent = targets.length ? targets[0] : -1;
+  if (newThread) parent = -1;
+  S.PAR[i] = parent;
+  S.ids[i] = makeId(i, parent);
+  // position: own ring point, pulled toward the most similar target
+  var rr = ringR(day) + gauss(S.rng) * 7;
+  var px = rr * Math.cos(th), py = rr * Math.sin(th);
+  if (targets.length) {
+    var bi = targets[0], bd = Infinity;
+    for (var u = 0; u < targets.length; u++) {
+      var dd = Math.abs(angDiff(th, S.TH[targets[u]]));
+      if (dd < bd) { bd = dd; bi = targets[u]; }
+    }
+    px = px * 0.72 + S.X[bi] * 0.28;
+    py = py * 0.72 + S.Y[bi] * 0.28;
+  }
+  S.X[i] = px + gauss(S.rng) * 4; S.Y[i] = py + gauss(S.rng) * 4;
+  S.VX[i] = 0; S.VY[i] = 0;
+  S.active.push(i);
+  // record insight
+  if (insight) {
+    var no = S.insights.length + 1;
+    var y = dayToDate(day).y;
+    var tA = TOPICS[S.TOP[insight[0]]].name;
+    var tB = TOPICS[S.TOP[insight[1]]].name;
+    S.insights.push({ day: day, card: i, a: insight[0], b: insight[1], no: no });
+    S.insightDays.push(day);
+    S.chords.push([insight[0], insight[1]]);
+    stampChord(insight[0], insight[1]);
+    if (!motionCalm) flashes.push({
+      x1: S.X[insight[0]], y1: S.Y[insight[0]],
+      x2: S.X[insight[1]], y2: S.Y[insight[1]],
+      x0: S.X[i], y0: S.Y[i], t0: performance.now()
+    });
+    logInsight(y, S.ids[i], tA, tB, no);
+  }
+  // milestones
+  if (S.milestoneIdx < MILESTONES.length && S.n >= MILESTONES[S.milestoneIdx]) {
+    var ms = MILESTONES[S.milestoneIdx++];
+    var note = MILESTONE_NOTE[ms] || 'The slip-box passes ' + fmt(ms) + ' cards.';
+    logEvent(dayToDate(day).y, (MILESTONE_NOTE[ms] ? 'Card ' + fmt(ms) + ' is filed. ' + note : note), false);
+  }
+}
+function rollingInsightRate(day) {
+  var d = S.insightDays, c = 0;
+  for (var i = d.length - 1; i >= 0; i--) {
+    if (day - d[i] > 365) break;
+    c++;
+  }
+  return c;
+}
+function takeSample(day) {
+  S.samples.d.push(day);
+  S.samples.cards.push(S.n);
+  S.samples.links.push(S.linkCount);
+  S.samples.rate.push(rollingInsightRate(day));
+  chartsDirty = true;
+}
+function stepDay() {
+  S.day++;
+  var day = S.day;
+  var curiosity = Number(el.cur.value) / 100;
+  // researcher's drifting attention
+  S.focusA += gauss(S.rng) * 0.02 * (0.25 + curiosity);
+  if (S.rng() < 0.0035 * (0.3 + curiosity)) {
+    var emergedIdx = [];
+    for (var t = 0; t < TOPICS.length; t++) if (S.emerged[t]) emergedIdx.push(t);
+    var jump = TOPICS[pick(emergedIdx, S.rng)];
+    S.focusA = jump.angle + gauss(S.rng) * 0.15;
+    var yy = dayToDate(day).y;
+    if (yy !== S.lastDriftLogYear && S.rng() < 0.5) {
+      S.lastDriftLogYear = yy;
+      logEvent(yy, 'Reading shifts toward ' + jump.name.toLowerCase() + '.', false);
+    }
+  }
+  // calendar bookkeeping
+  var date = dayToDate(day);
+  if (date.y !== S.year) {
+    S.year = date.y;
+    for (var k = 0; k < TOPICS.length; k++) {
+      if (!S.emerged[k] && TOPICS[k].emerge <= date.y) {
+        S.emerged[k] = true;
+        legendDirty = true;
+        logEvent(date.y, 'A new thread begins: ' + TOPICS[k].name + '.', false);
+        if (S.rng() < 0.85) S.focusA = TOPICS[k].angle + gauss(S.rng) * 0.1;
+      }
+    }
+  }
+  // write cards
+  var lambda = Number(el.prod.value) / 10;
+  var count = poisson(lambda, S.rng);
+  for (var c = 0; c < count; c++) createCard(day);
+  var yi = date.y - S.startYear;
+  if (yi >= 0 && yi < S.cardsPerYear.length) S.cardsPerYear[yi] += count;
+  // quarterly samples
+  if (day >= S.nextSample) {
+    S.nextSample = day + 91;
+    takeSample(day);
+  }
+  if (day >= S.totalDays) finish();
+}
+function advance(nDays, budgetMs) {
+  var t0 = performance.now();
+  var done = 0;
+  while (done < nDays && !finished) {
+    stepDay();
+    done++;
+    if (budgetMs && (done & 3) === 0 && performance.now() - t0 > budgetMs) break;
+  }
+  return done;
+}
+
+/* ================= physics ================= */
+var nearBuf = [];
+function physics(iter) {
+  var head = S.activeHead, tail = S.active.length;
+  var act = S.active;
+  for (var it = 0; it < iter; it++) {
+    for (var a = head; a < tail; a++) {
+      var i = act[a];
+      var fx = 0, fy = 0;
+      var xi = S.X[i], yi = S.Y[i];
+      // springs to neighbours (long-range references pull only faintly)
+      var nb = S.adj[i];
+      for (var j = 0; j < nb.length; j++) {
+        var o = nb[j];
+        var dx = S.X[o] - xi, dy = S.Y[o] - yi;
+        var d = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        var k = d > 120 ? 0.002 : 0.045;
+        var f = k * (d - REST) / d;
+        fx += dx * f; fy += dy * f;
+      }
+      // anchor pull to own ring point (time = radius)
+      var rr = ringR(S.BORN[i]);
+      var tx = rr * Math.cos(S.TH[i]), ty = rr * Math.sin(S.TH[i]);
+      fx += (tx - xi) * 0.014; fy += (ty - yi) * 0.014;
+      // repulsion: active brute + frozen via grid
+      for (var b = head; b < tail; b++) {
+        var o2 = act[b];
+        if (o2 === i) continue;
+        var dx2 = xi - S.X[o2], dy2 = yi - S.Y[o2];
+        var d2 = dx2 * dx2 + dy2 * dy2;
+        if (d2 < 620 && d2 > 0.01) {
+          var inv = 26 / (d2 + 12);
+          fx += dx2 * inv * 0.5; fy += dy2 * inv * 0.5;
+        }
+      }
+      gridNear(xi, yi, nearBuf);
+      var checks = 0;
+      for (var g = 0; g < nearBuf.length && checks < 14; g++) {
+        var o3 = nearBuf[g];
+        var dx3 = xi - S.X[o3], dy3 = yi - S.Y[o3];
+        var d3 = dx3 * dx3 + dy3 * dy3;
+        if (d3 < 620 && d3 > 0.01) {
+          checks++;
+          var inv3 = 26 / (d3 + 12);
+          fx += dx3 * inv3 * 0.5; fy += dy3 * inv3 * 0.5;
+        }
+      }
+      var vx = (S.VX[i] + fx) * 0.82, vy = (S.VY[i] + fy) * 0.82;
+      var sp = vx * vx + vy * vy;
+      if (sp > 36) { var sc = 6 / Math.sqrt(sp); vx *= sc; vy *= sc; }
+      S.VX[i] = vx; S.VY[i] = vy;
+      S.X[i] = xi + vx; S.Y[i] = yi + vy;
+    }
+  }
+}
+function freezePass() {
+  var maxActive = frameCost > 26 ? 200 : ACTIVE_MAX;
+  while (S.active.length - S.activeHead > maxActive) {
+    freezeNode(S.active[S.activeHead]);
+    S.activeHead++;
+  }
+  if (S.activeHead > 4000) { // compact the queue
+    S.active = S.active.slice(S.activeHead);
+    S.activeHead = 0;
+  }
+}
+function freezeAll() {
+  while (S.activeHead < S.active.length) {
+    freezeNode(S.active[S.activeHead]);
+    S.activeHead++;
+  }
+}
+
+/* ================= camera & render ================= */
+var dpr = 1, cw = 0, chh = 0;
+function resize() {
+  var rect = el.net.getBoundingClientRect();
+  dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1) || 1);
+  cw = Math.max(1, Math.round(rect.width));
+  chh = Math.max(1, Math.round(rect.height));
+  el.net.width = Math.round(cw * dpr);
+  el.net.height = Math.round(chh * dpr);
+}
+function fitScale() {
+  return 0.5 * Math.min(cw, chh) / (ringR(S.day) + 130);
+}
+function sx(wx) { return (cw / 2 + (wx - cam.cx) * cam.scale) * dpr; }
+function sy(wy) { return (chh / 2 + (wy - cam.cy) * cam.scale) * dpr; }
+function screenToWorld(px, py) {
+  return { x: (px - cw / 2) / cam.scale + cam.cx, y: (py - chh / 2) / cam.scale + cam.cy };
+}
+function render(now) {
+  if (!cw) return;
+  var W = el.net.width, H = el.net.height;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = theme.canvasBg;
+  ctx.fillRect(0, 0, W, H);
+  if (!S) return;
+  if (cam.auto) {
+    var target = fitScale();
+    cam.scale = motionCalm ? target : cam.scale + (target - cam.scale) * 0.07;
+    cam.cx += (0 - cam.cx) * 0.07; cam.cy += (0 - cam.cy) * 0.07;
+  }
+  var sc = cam.scale * dpr;
+  // decade rings
+  ctx.strokeStyle = theme.ring;
+  ctx.lineWidth = 1;
+  var labelPts = [];
+  for (var y = S.startYear; y <= S.startYear + Math.ceil(S.totalDays / 365.25); y++) {
+    if (y % 10 !== 0) continue;
+    var dday = Math.round((Date.UTC(y, 0, 1) - Date.UTC(S.startYear, 0, 1)) / 86400000);
+    if (dday <= 0 || dday > S.day + 1200) continue;
+    var rr = ringR(dday);
+    ctx.beginPath();
+    ctx.arc(sx(0), sy(0), rr * sc, 0, TAU);
+    ctx.stroke();
+    labelPts.push([y, rr]);
+  }
+  // growing edge
+  ctx.strokeStyle = hexA(theme.accent, 0.35);
+  ctx.setLineDash([4 * dpr, 6 * dpr]);
+  ctx.beginPath();
+  ctx.arc(sx(0), sy(0), ringR(S.day) * sc, 0, TAU);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // frozen layer
+  var e = offExtent;
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(off, 0, 0, off.width, off.height, sx(-e), sy(-e), 2 * e * sc, 2 * e * sc);
+  // active links
+  ctx.strokeStyle = theme.link;
+  ctx.lineWidth = Math.max(0.6, 0.75 * sc);
+  ctx.beginPath();
+  var a, i, j, nb;
+  for (a = S.activeHead; a < S.active.length; a++) {
+    i = S.active[a];
+    nb = S.adj[i];
+    for (j = 0; j < nb.length; j++) {
+      var o = nb[j];
+      if (!S.FROZ[o] && o > i) continue;
+      ctx.moveTo(sx(S.X[i]), sy(S.Y[i]));
+      ctx.lineTo(sx(S.X[o]), sy(S.Y[o]));
+    }
+  }
+  ctx.stroke();
+  // active nodes
+  for (a = S.activeHead; a < S.active.length; a++) {
+    i = S.active[a];
+    ctx.fillStyle = theme.topics[S.TOP[i]];
+    var r = Math.max(1, nodeR(i) * sc);
+    ctx.beginPath();
+    ctx.arc(sx(S.X[i]), sy(S.Y[i]), r, 0, TAU);
+    ctx.fill();
+  }
+  // newest card marker ("the pen is here")
+  if (S.n > 0 && !finished) {
+    var last = S.n - 1;
+    ctx.strokeStyle = theme.ink;
+    ctx.lineWidth = 1 * dpr;
+    ctx.beginPath();
+    ctx.arc(sx(S.X[last]), sy(S.Y[last]), Math.max(3, nodeR(last) * sc + 3 * dpr), 0, TAU);
+    ctx.stroke();
+  }
+  // insight flashes
+  if (!motionCalm) {
+    for (var f = flashes.length - 1; f >= 0; f--) {
+      var fl = flashes[f];
+      var t = (now - fl.t0) / 1800;
+      if (t >= 1) { flashes.splice(f, 1); continue; }
+      var alpha = 1 - t;
+      ctx.strokeStyle = hexA(theme.stamp, 0.85 * alpha);
+      ctx.lineWidth = (2.2 - 1.4 * t) * dpr;
+      ctx.beginPath();
+      ctx.moveTo(sx(fl.x1), sy(fl.y1));
+      ctx.lineTo(sx(fl.x2), sy(fl.y2));
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(sx(fl.x0), sy(fl.y0), (4 + 26 * t) * dpr, 0, TAU);
+      ctx.stroke();
+    }
+  } else if (flashes.length) flashes.length = 0;
+  // selection
+  if (selected >= 0 && selected < S.n) {
+    i = selected;
+    ctx.strokeStyle = hexA(theme.stamp, 0.9);
+    ctx.lineWidth = 1.4 * dpr;
+    nb = S.adj[i];
+    ctx.beginPath();
+    for (j = 0; j < nb.length; j++) {
+      ctx.moveTo(sx(S.X[i]), sy(S.Y[i]));
+      ctx.lineTo(sx(S.X[nb[j]]), sy(S.Y[nb[j]]));
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(sx(S.X[i]), sy(S.Y[i]), Math.max(4, nodeR(i) * sc + 3 * dpr), 0, TAU);
+    ctx.stroke();
+  }
+  // ring year labels (screen space)
+  ctx.fillStyle = theme.muted;
+  ctx.font = (10 * dpr) + 'px ' + 'ui-monospace, Menlo, Consolas, monospace';
+  ctx.textAlign = 'center';
+  var la = -2.28; // upper-left
+  for (var L = 0; L < labelPts.length; L++) {
+    var rr2 = labelPts[L][1];
+    ctx.fillText(String(labelPts[L][0]), sx(rr2 * Math.cos(la)), sy(rr2 * Math.sin(la)) - 3 * dpr);
+  }
+}
+
+/* ================= charts ================= */
+var chartsDirty = true;
+function niceMax(v) {
+  if (v <= 10) return 10;
+  var p = Math.pow(10, Math.floor(Math.log10(v)));
+  var m = v / p;
+  var f = m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10;
+  return f * p;
+}
+function prepChart(cv) {
+  var rect = cv.getBoundingClientRect();
+  var w = Math.max(10, Math.round(rect.width)), h = Math.max(10, Math.round(rect.height));
+  var d = Math.min(2, (typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1) || 1);
+  if (cv.width !== Math.round(w * d) || cv.height !== Math.round(h * d)) {
+    cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+  }
+  var c = cv.getContext('2d');
+  c.setTransform(d, 0, 0, d, 0, 0);
+  c.clearRect(0, 0, w, h);
+  return { c: c, w: w, h: h };
+}
+function drawChartFrame(c, w, h, padL, yMax, xTicksYears) {
+  c.strokeStyle = theme.gridline;
+  c.lineWidth = 1;
+  c.fillStyle = theme.muted;
+  c.font = '9.5px ui-monospace, Menlo, Consolas, monospace';
+  c.textAlign = 'left';
+  // horizontal gridlines
+  for (var g = 0; g <= 2; g++) {
+    var gy = 6 + (h - 22 - 6) * g / 2;
+    c.beginPath(); c.moveTo(padL, gy); c.lineTo(w - 4, gy); c.stroke();
+    var val = yMax * (1 - g / 2);
+    c.fillText(val >= 1000 ? (val / 1000) + 'k' : String(Math.round(val)), 2, gy + 3);
+  }
+  // decade ticks
+  c.textAlign = 'center';
+  for (var t = 0; t < xTicksYears.length; t++) {
+    var frac = xTicksYears[t][1];
+    var x = padL + (w - 4 - padL) * frac;
+    c.beginPath(); c.moveTo(x, h - 22); c.lineTo(x, h - 18); c.stroke();
+    c.fillText(String(xTicksYears[t][0]), x, h - 8);
+  }
+  // baseline
+  c.strokeStyle = theme.muted;
+  c.beginPath(); c.moveTo(padL, h - 22); c.lineTo(w - 4, h - 22); c.stroke();
+}
+function decadeTicks() {
+  var out = [];
+  for (var y = S.startYear; y <= S.endYear; y++) {
+    if (y % 10 !== 0) continue;
+    var dd = Math.round((Date.UTC(y, 0, 1) - Date.UTC(S.startYear, 0, 1)) / 86400000);
+    if (dd < 0 || dd > S.totalDays) continue;
+    out.push([y, dd / S.totalDays]);
+  }
+  return out;
+}
+function drawSeries(c, w, h, padL, days, vals, yMax, color, withArea) {
+  var x0 = padL, x1 = w - 4, y0 = h - 22, y1 = 6;
+  function px(d) { return x0 + (x1 - x0) * d / S.totalDays; }
+  function py(v) { return y0 - (y0 - y1) * v / yMax; }
+  if (days.length < 1) return;
+  if (withArea) {
+    c.fillStyle = hexA(color, 0.13);
+    c.beginPath();
+    c.moveTo(px(days[0]), y0);
+    for (var i = 0; i < days.length; i++) c.lineTo(px(days[i]), py(vals[i]));
+    c.lineTo(px(days[days.length - 1]), y0);
+    c.closePath(); c.fill();
+  }
+  c.strokeStyle = color;
+  c.lineWidth = 1.8;
+  c.lineJoin = 'round';
+  c.beginPath();
+  for (var j = 0; j < days.length; j++) {
+    if (j === 0) c.moveTo(px(days[j]), py(vals[j]));
+    else c.lineTo(px(days[j]), py(vals[j]));
+  }
+  c.stroke();
+  // emphasized endpoint
+  var lx = px(days[days.length - 1]), ly = py(vals[vals.length - 1]);
+  c.fillStyle = color;
+  c.beginPath(); c.arc(lx, ly, 3, 0, TAU); c.fill();
+  c.strokeStyle = theme.panel; c.lineWidth = 1.4;
+  c.beginPath(); c.arc(lx, ly, 3, 0, TAU); c.stroke();
+}
+function drawCharts() {
+  if (!S) return;
+  var sm = S.samples;
+  var days = sm.d.slice(); var cards = sm.cards.slice(); var links = sm.links.slice(); var rate = sm.rate.slice();
+  // live point at "now"
+  if (S.day > 0 && (!days.length || days[days.length - 1] < S.day)) {
+    days.push(S.day); cards.push(S.n); links.push(S.linkCount); rate.push(rollingInsightRate(S.day));
+  }
+  var ticks = decadeTicks();
+  // chart 1: cumulative cards + links
+  var p1 = prepChart(el.chartCum);
+  var padL = 30;
+  var yMax1 = niceMax(Math.max(10, links.length ? links[links.length - 1] : 0));
+  drawChartFrame(p1.c, p1.w, p1.h, padL, yMax1, ticks);
+  drawSeries(p1.c, p1.w, p1.h, padL, days, links, yMax1, theme.chLinks, true);
+  drawSeries(p1.c, p1.w, p1.h, padL, days, cards, yMax1, theme.chCards, true);
+  el.c1Cur.textContent = fmt(S.n) + ' cards / ' + fmt(S.linkCount) + ' links';
+  // chart 2: rolling insight rate
+  var p2 = prepChart(el.chartRate);
+  var yMax2 = niceMax(Math.max(4, Math.max.apply(null, rate.length ? rate : [0])));
+  drawChartFrame(p2.c, p2.w, p2.h, padL, yMax2, ticks);
+  drawSeries(p2.c, p2.w, p2.h, padL, days, rate, yMax2, theme.stamp, true);
+  chartsDirty = false;
+}
+
+/* ================= hubs, tiles, log, legend ================= */
+function recomputeHubs() {
+  var top = [];
+  var minTop = 0;
+  for (var i = 0; i < S.n; i++) {
+    var d = S.DEG[i];
+    if (d <= minTop && top.length >= 8) continue;
+    top.push({ i: i, d: d });
+    if (top.length > 24) {
+      top.sort(function (a, b) { return b.d - a.d; });
+      top.length = 8;
+      minTop = top[7].d;
+    }
+  }
+  top.sort(function (a, b) { return b.d - a.d; });
+  top.length = Math.min(top.length, 8);
+  hubCache = top;
+}
+function renderHubs() {
+  var frag = document.createDocumentFragment();
+  for (var k = 0; k < hubCache.length; k++) {
+    var h = hubCache[k];
+    var row = document.createElement('div');
+    row.className = 'hub';
+    var dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.style.setProperty('--c', 'var(--t' + S.TOP[h.i] + ')');
+    var t = document.createElement('span');
+    t.className = 't';
+    var idsp = document.createElement('span');
+    idsp.className = 'hid';
+    idsp.textContent = S.ids[h.i];
+    t.appendChild(idsp);
+    t.appendChild(document.createTextNode(titleFor(h.i)));
+    var d = document.createElement('span');
+    d.className = 'd';
+    d.textContent = String(h.d);
+    row.appendChild(dot); row.appendChild(t); row.appendChild(d);
+    (function (idx) {
+      row.addEventListener('click', function () { openCard(idx); });
+    })(h.i);
+    row.style.cursor = 'pointer';
+    frag.appendChild(row);
+  }
+  el.hubs.textContent = '';
+  el.hubs.appendChild(frag);
+}
+function updateTiles() {
+  el.tCards.textContent = fmt(S.n);
+  el.tLinks.textContent = fmt(S.linkCount);
+  el.tInsights.textContent = fmt(S.insights.length);
+  var d = dayToDate(S.day);
+  el.year.textContent = String(d.y);
+  el.date.textContent = d.d + ' ' + MONTHS[d.m] + ' · day ' + fmt(S.day);
+}
+function trimLog() {
+  S.logEntries++;
+  el.logCount.textContent = fmt(S.logEntries) + (S.logEntries === 1 ? ' entry' : ' entries');
+  while (el.log.children.length > 220) el.log.removeChild(el.log.lastElementChild);
+}
+function logEvent(year, text, strong) {
+  var row = document.createElement('div');
+  row.className = 'ev';
+  var y = document.createElement('span');
+  y.className = 'y'; y.textContent = String(year);
+  var x = document.createElement('span');
+  x.className = 'x';
+  if (strong) {
+    var b = document.createElement('b'); b.textContent = text; x.appendChild(b);
+  } else x.textContent = text;
+  row.appendChild(y); row.appendChild(x);
+  el.log.prepend(row);
+  trimLog();
+}
+function logInsight(year, cardId, topicA, topicB, no) {
+  var row = document.createElement('div');
+  row.className = 'ev insight';
+  var y = document.createElement('span');
+  y.className = 'y'; y.textContent = String(year);
+  var x = document.createElement('span');
+  x.className = 'x';
+  var badge = document.createElement('span');
+  badge.className = 'no'; badge.textContent = 'insight #' + no;
+  x.appendChild(badge);
+  var cid = document.createElement('span');
+  cid.className = 'cid'; cid.textContent = cardId;
+  x.appendChild(document.createTextNode('card '));
+  x.appendChild(cid);
+  var same = topicA === topicB;
+  x.appendChild(document.createTextNode(
+    same ? ' stitches together two distant regions of “' + topicA + '”.'
+         : ' bridges “' + topicA + '” and “' + topicB + '”.'
+  ));
+  row.appendChild(y); row.appendChild(x);
+  el.log.prepend(row);
+  trimLog();
+}
+var legendDirty = true;
+function renderLegend() {
+  el.legend.textContent = '';
+  for (var t = 0; t < TOPICS.length; t++) {
+    var chip = document.createElement('span');
+    chip.className = 'chip' + (S.emerged[t] ? ' on' : '');
+    chip.style.setProperty('--c', 'var(--t' + t + ')');
+    var i = document.createElement('i');
+    chip.appendChild(i);
+    chip.appendChild(document.createTextNode(TOPICS[t].name));
+    el.legend.appendChild(chip);
+  }
+  legendDirty = false;
+}
+
+/* ================= card inspector ================= */
+function openCard(i) {
+  if (i < 0 || i >= S.n) return;
+  selected = i;
+  var d = dayToDate(S.BORN[i]);
+  el.cardId.textContent = S.ids[i];
+  el.cardDot.style.setProperty('--c', 'var(--t' + S.TOP[i] + ')');
+  el.cardMeta.textContent = TOPICS[S.TOP[i]].name + ' · ' + MONTHS[d.m] + ' ' + d.y;
+  el.cardTitle.textContent = titleFor(i);
+  el.cardBody.textContent = bodyFor(i);
+  el.cardLinks.textContent = '';
+  var nb = S.adj[i];
+  var head = document.createElement('li');
+  head.className = 'lk-head';
+  head.textContent = nb.length === 0 ? 'No links — a thread head.' : 'Links (' + nb.length + '):';
+  el.cardLinks.appendChild(head);
+  var shown = Math.min(nb.length, 6);
+  for (var k = 0; k < shown; k++) {
+    var li = document.createElement('li');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = S.ids[nb[k]] + ' — ' + titleFor(nb[k]);
+    (function (idx) {
+      btn.addEventListener('click', function () { openCard(idx); });
+    })(nb[k]);
+    li.appendChild(btn);
+    el.cardLinks.appendChild(li);
+  }
+  if (nb.length > shown) {
+    var more = document.createElement('li');
+    more.className = 'lk-head';
+    more.textContent = '…and ' + (nb.length - shown) + ' more.';
+    el.cardLinks.appendChild(more);
+  }
+  el.card.hidden = false;
+  if (!playing) requestRender();
+}
+function closeCard() {
+  el.card.hidden = true;
+  selected = -1;
+  if (!playing) requestRender();
+}
+
+/* ================= summary ================= */
+function buildSummary() {
+  el.sumRange.textContent = S.startYear + '–' + S.endYear + ' · ' + fmt(S.day) + ' days · seed ' + S.seed;
+  el.sumList.textContent = '';
+  function row(k, v, sub) {
+    var dt = document.createElement('dt'); dt.textContent = k;
+    var dd = document.createElement('dd'); dd.textContent = v;
+    if (sub) {
+      var s = document.createElement('small');
+      s.textContent = ' ' + sub;
+      dd.appendChild(s);
+    }
+    el.sumList.appendChild(dt); el.sumList.appendChild(dd);
+  }
+  recomputeHubs();
+  var hub = hubCache.length ? hubCache[0] : null;
+  var counts = new Array(TOPICS.length).fill(0);
+  for (var i = 0; i < S.n; i++) counts[S.TOP[i]]++;
+  var big = 0;
+  for (var t = 1; t < counts.length; t++) if (counts[t] > counts[big]) big = t;
+  var bestY = 0;
+  for (var y = 1; y < S.cardsPerYear.length; y++) if (S.cardsPerYear[y] > S.cardsPerYear[bestY]) bestY = y;
+  row('Cards filed', fmt(S.n));
+  row('Links laid', fmt(S.linkCount));
+  row('Insights recorded', fmt(S.insights.length),
+      S.insights.length ? '(1 per ' + fmt(Math.max(1, Math.round(S.n / S.insights.length))) + ' cards)' : '');
+  if (hub) row('Greatest hub', S.ids[hub.i], titleFor(hub.i) + ' · ' + hub.d + ' links');
+  row('Largest thread', TOPICS[big].name, fmt(counts[big]) + ' cards');
+  row('Most productive year', String(S.startYear + bestY), fmt(S.cardsPerYear[bestY]) + ' cards');
+  if (S.insights.length) row('First insight', String(dayToDate(S.insightDays[0]).y));
+  row('Average pace', (S.n / Math.max(1, S.day)).toFixed(2) + ' cards/day');
+  el.summary.hidden = false;
+}
+function finish() {
+  if (finished) return;
+  finished = true;
+  playing = false;
+  el.play.textContent = 'Done';
+  el.play.disabled = true;
+  freezeAll();
+  takeSample(S.day);
+  logEvent(S.endYear, 'The pen is set down. The box holds ' + fmt(S.n) + ' cards, ' + fmt(S.linkCount) + ' links, ' + fmt(S.insights.length) + ' insights.', true);
+  updateTiles();
+  drawCharts();
+  buildSummary();
+  requestRender();
+}
+
+/* ================= interactions ================= */
+function setPlaying(p) {
+  if (finished) return;
+  playing = p;
+  el.play.textContent = playing ? 'Pause' : (S.n ? 'Resume' : 'Begin');
+}
+el.play.addEventListener('click', function () { setPlaying(!playing); });
+el.step.addEventListener('click', function () {
+  if (finished) return;
+  var target = Math.min(S.totalDays, S.day + 365);
+  while (S.day < target && !finished) advance(target - S.day, 0);
+  physics(6); freezePass(); ensureExtent();
+  updateTiles(); drawCharts();
+  if (legendDirty) renderLegend();
+  recomputeHubs(); renderHubs();
+  requestRender();
+});
+function speedFromSlider() {
+  var p = Number(el.speed.value);
+  return Math.max(1, Math.round(Math.pow(500, p / 100)));
+}
+function syncSliderLabels() {
+  el.speedV.textContent = '×' + speedFromSlider();
+  el.prodV.textContent = (Number(el.prod.value) / 10).toFixed(1) + '/day';
+  el.curV.textContent = el.cur.value + '%';
+}
+el.speed.addEventListener('input', syncSliderLabels);
+el.prod.addEventListener('input', syncSliderLabels);
+el.cur.addEventListener('input', syncSliderLabels);
+el.restart.addEventListener('click', function () { restart(); });
+el.reseed.addEventListener('click', function () {
+  el.seed.value = String(1 + Math.floor(Math.random() * 99999));
+  restart();
+});
+el.span.addEventListener('change', function () { restart(); });
+el.fit.addEventListener('click', function () { cam.auto = true; requestRender(); });
+el.motion.addEventListener('change', function () {
+  motionCalm = el.motion.value === 'calm';
+  requestRender();
+});
+el.cardClose.addEventListener('click', closeCard);
+el.sumInspect.addEventListener('click', function () { el.summary.hidden = true; requestRender(); });
+el.sumAgain.addEventListener('click', function () {
+  el.seed.value = String(1 + Math.floor(Math.random() * 99999));
+  restart();
+  setPlaying(true);
+});
+window.addEventListener('keydown', function (ev) {
+  var tag = ev.target && ev.target.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+  if (ev.key === ' ') { ev.preventDefault(); setPlaying(!playing); }
+  else if (ev.key === 'f' || ev.key === 'F') { cam.auto = true; }
+  else if (ev.key === 'Escape') { closeCard(); }
+});
+
+/* canvas pointer: pan / zoom / click */
+var drag = null;
+el.net.addEventListener('pointerdown', function (ev) {
+  drag = { x: ev.clientX, y: ev.clientY, cx: cam.cx, cy: cam.cy, moved: false };
+  el.net.setPointerCapture(ev.pointerId);
+});
+el.net.addEventListener('pointermove', function (ev) {
+  if (!drag) return;
+  var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+  if (drag.moved) {
+    cam.auto = false;
+    cam.cx = drag.cx - dx / cam.scale;
+    cam.cy = drag.cy - dy / cam.scale;
+    if (!playing) requestRender();
+  }
+});
+el.net.addEventListener('pointerup', function (ev) {
+  if (drag && !drag.moved) {
+    var rect = el.net.getBoundingClientRect();
+    var w = screenToWorld(ev.clientX - rect.left, ev.clientY - rect.top);
+    var hit = hitTest(w.x, w.y);
+    if (hit >= 0) openCard(hit); else closeCard();
+  }
+  drag = null;
+});
+el.net.addEventListener('pointercancel', function () { drag = null; });
+el.net.addEventListener('wheel', function (ev) {
+  ev.preventDefault();
+  if (!S) return;
+  cam.auto = false;
+  var rect = el.net.getBoundingClientRect();
+  var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+  var before = screenToWorld(mx, my);
+  var factor = Math.exp(-ev.deltaY * 0.0013);
+  cam.scale = clamp(cam.scale * factor, fitScale() * 0.4, 14);
+  var after = screenToWorld(mx, my);
+  cam.cx += before.x - after.x;
+  cam.cy += before.y - after.y;
+  if (!playing) requestRender();
+}, { passive: false });
+function hitTest(wx, wy) {
+  var best = -1, bestD = Math.max(6, 9 / cam.scale); bestD *= bestD;
+  var a, i, dx, dy, d2;
+  for (a = S.activeHead; a < S.active.length; a++) {
+    i = S.active[a];
+    dx = S.X[i] - wx; dy = S.Y[i] - wy; d2 = dx * dx + dy * dy;
+    if (d2 < bestD) { bestD = d2; best = i; }
+  }
+  gridNear(wx, wy, nearBuf);
+  for (a = 0; a < nearBuf.length; a++) {
+    i = nearBuf[a];
+    dx = S.X[i] - wx; dy = S.Y[i] - wy; d2 = dx * dx + dy * dy;
+    if (d2 < bestD) { bestD = d2; best = i; }
+  }
+  return best;
+}
+
+/* theme switches (host toggle or OS) */
+try {
+  var mo = new MutationObserver(function () { onThemeChange(); });
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+} catch (e) { /* older host */ }
+try {
+  var mq = matchMedia('(prefers-color-scheme: dark)');
+  if (mq.addEventListener) mq.addEventListener('change', function () { onThemeChange(); });
+} catch (e2) { /* no-op */ }
+function onThemeChange() {
+  refreshTheme();
+  rebuildStatic();
+  chartsDirty = true;
+  requestRender();
+}
+
+/* resize */
+try {
+  var ro = new ResizeObserver(function () {
+    resize();
+    chartsDirty = true;
+    requestRender();
+  });
+  ro.observe(el.net.parentElement || el.net);
+} catch (e3) {
+  window.addEventListener('resize', function () { resize(); chartsDirty = true; requestRender(); });
+}
+
+/* ================= main loop ================= */
+var lastT = 0, lastTiles = 0, lastHubs = 0, lastCharts = 0, renderQueued = false;
+function requestRender() { renderQueued = true; }
+function frame(t) {
+  var dt = lastT ? Math.min(0.1, (t - lastT) / 1000) : 0.016;
+  lastT = t;
+  frameCost = frameCost * 0.9 + Math.min(80, dt * 1000) * 0.1;
+  var doRender = renderQueued;
+  if (playing && S && !finished) {
+    S.dayFloat += speedFromSlider() * dt;
+    if (S.dayFloat > 40) S.dayFloat = 40; // never spiral
+    var whole = Math.floor(S.dayFloat);
+    if (whole > 0) S.dayFloat -= advance(whole, 9);
+    physics(frameCost > 26 ? 1 : 2);
+    freezePass();
+    ensureExtent();
+    doRender = true;
+    if (motionCalm && (t % 100) > 50 && S.day < S.totalDays) doRender = (t - lastCharts) > 380 || renderQueued || true; // calm still renders; motion is reduced elsewhere
+  }
+  if (doRender) { render(t); renderQueued = false; }
+  if (S && t - lastTiles > 160) { lastTiles = t; if (playing || finished) updateTiles(); }
+  if (S && t - lastHubs > 700 && (playing || !hubCache.length)) {
+    lastHubs = t;
+    recomputeHubs();
+    renderHubs();
+    if (legendDirty) renderLegend();
+  }
+  if (S && (chartsDirty && t - lastCharts > 420)) { lastCharts = t; drawCharts(); }
+  if (flashes.length) renderQueued = true;
+  requestAnimationFrame(frame);
+}
+
+/* ================= boot / restart ================= */
+function restart() {
+  var seed = Math.max(1, Math.floor(Number(el.seed.value) || 1927)) >>> 0;
+  el.seed.value = String(seed);
+  var span = Number(el.span.value) || 46;
+  S = newState(seed, span, 1951);
+  finished = false;
+  playing = false;
+  selected = -1;
+  flashes.length = 0;
+  hubCache = [];
+  cam = { scale: 1, cx: 0, cy: 0, auto: true };
+  offExtent = 340;
+  el.play.disabled = false;
+  el.play.textContent = 'Begin';
+  el.summary.hidden = true;
+  el.card.hidden = true;
+  el.log.textContent = '';
+  el.hubs.textContent = '';
+  S.logEntries = 0;
+  el.logCount.textContent = '0 entries';
+  rebuildStatic();
+  legendDirty = true;
+  renderLegend();
+  logEvent(S.startYear, 'A first card is filed. The box is empty no longer.', true);
+  S.logEntries = 1;
+  // seed the box with a first week of work
+  advance(7, 0);
+  physics(8);
+  cam.scale = fitScale();
+  updateTiles();
+  takeSample(S.day);
+  drawCharts();
+  recomputeHubs();
+  renderHubs();
+  requestRender();
+}
+function boot() {
+  refreshTheme();
+  resize();
+  var reduced = false;
+  try { reduced = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* no-op */ }
+  if (reduced) { el.motion.value = 'calm'; motionCalm = true; }
+  syncSliderLabels();
+  restart();
+  requestAnimationFrame(frame);
+}
+boot();
+
+/* test hook (harmless in production) */
+window.__luhmann = {
+  restart: restart,
+  advance: function (n) { var d = advance(n, 0); physics(4); freezePass(); ensureExtent(); return d; },
+  render: function () { render(performance.now()); },
+  charts: drawCharts,
+  resize: resize,
+  hubs: function () { recomputeHubs(); renderHubs(); },
+  open: openCard,
+  state: function () { return S; },
+  isFinished: function () { return finished; },
+  titleFor: titleFor,
+  bodyFor: bodyFor
+};
+
+})();
+</script>

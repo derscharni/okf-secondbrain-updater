@@ -1,0 +1,712 @@
+<!--
+  THOUGHTFORMS — what does a thought look like?
+  ─────────────────────────────────────────────
+  Design plan (committed single-theme gallery dark — a choice, not an omission):
+    Void      #050609   page ground
+    Panel     #0b0d13   chip / button fill
+    Hairline  #23262e   rules and borders
+    Bone      #e9e6dc   primary ink (the thought itself)
+    Slate     #878b9c   secondary ink (specimen label)
+    Accent    generative — sampled from the organism's genome hue (--accent)
+  Type: thought line in Iowan/Palatino serif system stack; readout + chips in
+  fine letterspaced ui-monospace, written like museum specimen labels.
+  Determinism: every organism trait flows from xmur3(text) → mulberry32.
+  Math.random appears nowhere in this file.
+-->
+<title>Thoughtforms</title>
+<style>
+  :root{
+    --void:#050609;
+    --panel:#0b0d13;
+    --hairline:#23262e;
+    --bone:#e9e6dc;
+    --slate:#878b9c;
+    --accent:hsl(190 70% 62%);
+    --serif:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
+    --mono:ui-monospace,'SF Mono','Cascadia Mono','JetBrains Mono',Menlo,Consolas,monospace;
+  }
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--void)}
+  body{color:var(--bone);font-family:var(--serif)}
+  *{box-sizing:border-box}
+
+  #stage{position:fixed;inset:0;display:block;cursor:crosshair;touch-action:none}
+
+  /* faint vignette so the creature sits in depth */
+  #vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse 90% 80% at 50% 42%,transparent 55%,rgba(2,3,6,.55) 100%)}
+
+  .chrome{position:fixed;z-index:10;pointer-events:none;font-family:var(--mono)}
+  .chrome > *{pointer-events:auto}
+
+  #brand{top:20px;left:24px;line-height:1.5}
+  #brand h1{margin:0;font:500 11px/1 var(--mono);letter-spacing:.42em;color:var(--bone);text-transform:uppercase}
+  #brand p{margin:6px 0 0;font:italic 400 13px/1 var(--serif);color:var(--slate);letter-spacing:.02em}
+
+  #tools{top:18px;right:22px;display:flex;gap:8px}
+  .tool{appearance:none;background:transparent;border:1px solid var(--hairline);color:var(--slate);
+    font:400 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+    padding:7px 12px;border-radius:999px;cursor:pointer;transition:color .25s,border-color .25s,background .25s}
+  .tool:hover{color:var(--bone);border-color:var(--slate)}
+  .tool[aria-pressed="true"]{color:var(--void);background:var(--accent);border-color:var(--accent)}
+  .tool:focus-visible,.chip:focus-visible,#thought:focus-visible{outline:1px solid var(--accent);outline-offset:3px}
+
+  #hint{top:52px;right:22px;color:#565a68;font:400 9.5px/1.7 var(--mono);letter-spacing:.1em;text-align:right;pointer-events:none}
+  #hint kbd{color:var(--slate);font-family:inherit}
+
+  #console{left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;
+    gap:13px;padding:0 24px calc(20px + env(safe-area-inset-bottom,0px))}
+  #thought{width:min(92vw,860px);background:transparent;border:0;text-align:center;
+    color:var(--bone);font:400 clamp(22px,3.6vw,34px)/1.35 var(--serif);letter-spacing:.01em;
+    caret-color:var(--accent);padding:4px 0;text-shadow:0 0 22px rgba(0,0,0,.85)}
+  #thought::placeholder{color:#4b4f5d;font-style:italic}
+  #thought::selection{background:var(--accent);color:var(--void)}
+
+  #readout{font:400 10.5px/1.8 var(--mono);letter-spacing:.13em;color:var(--slate);
+    text-transform:uppercase;text-align:center;max-width:92vw;min-height:2.8em}
+  #readout b{font-weight:400;color:var(--accent)}
+  #readout .sep{color:#4a4e5b;padding:0 .45em}
+
+  #gallery{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;max-width:94vw}
+  .chip{appearance:none;background:var(--panel);border:1px solid var(--hairline);color:var(--slate);
+    font:italic 400 11px/1 var(--serif);letter-spacing:.03em;padding:7px 13px;border-radius:999px;
+    cursor:pointer;transition:color .25s,border-color .25s;white-space:nowrap;max-width:44vw;overflow:hidden;text-overflow:ellipsis}
+  .chip:hover{color:var(--bone);border-color:var(--accent)}
+
+  @media (max-width:640px){
+    #hint{display:none}
+    #brand p{display:none}
+    .chip:nth-child(n+4){display:none}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .tool,.chip{transition:none}
+  }
+</style>
+
+<canvas id="stage" aria-label="A living particle organism grown from the typed thought"></canvas>
+<div id="vignette"></div>
+
+<header class="chrome" id="brand">
+  <h1>Thoughtforms</h1>
+  <p>what does a thought look like?</p>
+</header>
+
+<nav class="chrome" id="tools" aria-label="Instrument controls">
+  <button class="tool" id="soundBtn" aria-pressed="false">sound</button>
+  <button class="tool" id="calmBtn" aria-pressed="false">becalm</button>
+  <button class="tool" id="saveBtn">save png</button>
+</nav>
+<div class="chrome" id="hint" aria-hidden="true">
+  <kbd>space</kbd> pulse &nbsp;·&nbsp; <kbd>S</kbd> snapshot<br>drag to disturb the water
+</div>
+
+<div class="chrome" id="console">
+  <input id="thought" type="text" autocomplete="off" spellcheck="false"
+         placeholder="type a thought…" aria-label="Type a thought to grow its form"
+         value="every idea wants a body">
+  <div id="readout" aria-live="polite"></div>
+  <div id="gallery" role="group" aria-label="Specimen thoughts"></div>
+</div>
+
+<script>
+'use strict';
+(function(){
+
+/* ───────────────────────── deterministic core ───────────────────────── */
+
+function xmur3(str){
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++){
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return function(){
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return (h ^= h >>> 16) >>> 0;
+  };
+}
+function mulberry32(a){
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* layered value noise, hand-rolled, fixed lattice hash (genome supplies
+   continuous offsets/scales so morphs stay smooth) */
+function lat(x, y, z){
+  let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(z, 1440662683);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function smooth(t){ return t * t * (3 - 2 * t); }
+function vnoise3(x, y, z){
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  const xf = smooth(x - xi), yf = smooth(y - yi), zf = smooth(z - zi);
+  const c000 = lat(xi, yi, zi),     c100 = lat(xi+1, yi, zi);
+  const c010 = lat(xi, yi+1, zi),   c110 = lat(xi+1, yi+1, zi);
+  const c001 = lat(xi, yi, zi+1),   c101 = lat(xi+1, yi, zi+1);
+  const c011 = lat(xi, yi+1, zi+1), c111 = lat(xi+1, yi+1, zi+1);
+  const x00 = c000 + (c100-c000)*xf, x10 = c010 + (c110-c010)*xf;
+  const x01 = c001 + (c101-c001)*xf, x11 = c011 + (c111-c011)*xf;
+  const y0 = x00 + (x10-x00)*yf,     y1 = x01 + (x11-x01)*yf;
+  return y0 + (y1-y0)*zf;
+}
+function fbm(x, y, z){
+  return vnoise3(x, y, z) * 0.65 + vnoise3(x*2.13 + 7.7, y*2.13 + 3.1, z*1.7) * 0.35;
+}
+
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+function lerpHue(a, b, t){
+  let d = ((b - a + 540) % 360) - 180;
+  return (a + d * t + 360) % 360;
+}
+/* deterministic per-limb phase (independent of genome, stable across morphs) */
+function limbHash(j){
+  let h = Math.imul(j + 13, 2654435761); h ^= h >>> 15;
+  return ((h * 2246822519) >>> 0) / 4294967296 % 1;
+}
+
+/* ───────────────────────── genome from text ───────────────────────── */
+
+const FAMILIES = [
+  { name:'abyssal',    h:200, r:38, s:78 },
+  { name:'lanternfish',h:168, r:30, s:70 },
+  { name:'ember reef', h:18,  r:30, s:82 },
+  { name:'violet bloom',h:276, r:34, s:62 },
+  { name:'ghostlight', h:140, r:60, s:28 },
+  { name:'rose coral', h:335, r:28, s:66 },
+];
+const TEMPERAMENTS = ['calm','breathing','restless','skittish'];
+
+function genomeFromText(text){
+  const src = (text && text.trim()) ? text : '…';
+  const rnd = mulberry32(xmur3(src)());
+
+  /* semantics — measurable, legible traits */
+  const words = (src.trim().match(/\S+/g) || []).length;
+  const qs = (src.match(/\?/g) || []).length;
+  const exes = (src.match(/!/g) || []).length;
+  const letters = src.replace(/[^a-zA-Z]/g, '');
+  const upperRatio = letters.length ? (letters.replace(/[^A-Z]/g, '').length / letters.length) : 0;
+  const vowelRatio = letters.length ? ((letters.match(/[aeiouAEIOU]/g) || []).length / letters.length) : 0.38;
+
+  const open   = clamp(qs * 0.45, 0, 1);                       /* ? → searching, reaching */
+  const spike  = clamp(exes * 0.4 + upperRatio * 0.5, 0, 1);   /* ! CAPS → spiky energy */
+  const round  = clamp((vowelRatio - 0.22) / 0.3, 0, 1);       /* vowels → soft, bulbous */
+  const energy = clamp(0.18 + upperRatio * 1.3 + exes * 0.22 + rnd() * 0.42 - round * 0.35 - open * 0.12, 0, 1.2);
+  const temperament = energy < 0.3 ? 0 : energy < 0.55 ? 1 : energy < 0.85 ? 2 : 3;
+
+  const fam = FAMILIES[Math.floor(rnd() * FAMILIES.length)];
+  const hue = (fam.h + (rnd() - 0.5) * fam.r + 360) % 360;
+  const sat = fam.s + (rnd() - 0.5) * 10;
+  const sym = 1 + Math.floor(rnd() * 8);                       /* 1..8-fold */
+  const count = Math.round(1500 + rnd() * 1100 + clamp(src.length * 9, 0, 900));
+
+  const p = {
+    hue, sat,
+    hue2: (hue + (rnd() < 0.28 ? 150 + rnd() * 60 : 25 + rnd() * 40)) % 360,
+    sym,
+    count,
+    scaleF: 0.30 + rnd() * 0.09 + open * 0.05,
+    bodyR:  0.10 + rnd() * 0.13,
+    reach:  0.52 + rnd() * 0.34 + open * 0.28,
+    width: (0.045 + rnd() * 0.085) * (0.72 + round * 0.9),
+    taper:  0.8 + rnd() * 1.5 + spike * 1.8,
+    tipBulb: open * 0.55 + round * 0.2 + rnd() * 0.2,
+    wav:    0.6 + rnd() * 2.4 + spike * 1.4,
+    curl:  (0.12 + rnd() * 0.75) * (0.5 + rnd() * 0.7),
+    sway:   0.22 + rnd() * 0.6,
+    tempo: (0.55 + rnd() * 1.1) * (1 + spike * 0.7 + energy * 0.4),
+    pulseAmp: 0.05 + rnd() * 0.08 + (temperament === 1 ? 0.06 : 0),
+    travel: 2 + rnd() * 4.5,
+    spin: (rnd() - 0.5) * 0.22 * (1 + energy * 0.8),
+    spring: 2.4 + rnd() * 2.2 - open * 0.9 + spike * 1.2,
+    flowAmt: 10 + rnd() * 24 + energy * 26,
+    noiseScale: 0.0022 + rnd() * 0.0036,
+    drift: 0.10 + rnd() * 0.16 + energy * 0.1,
+    bead: rnd() * rnd() * 1.1,
+    beads: 6 + rnd() * 15,
+    coreGlow: 0.6 + rnd() * 0.6,
+    trail: lerp(0.13, 0.30, energy * 0.8),
+  };
+
+  /* deterministic chime scale seed, separate stream */
+  const chimeSeed = xmur3(src + '♪')();
+
+  const meta = {
+    family: fam.name, sym, temperament: TEMPERAMENTS[temperament],
+    words, qs, exes, count,
+    vowelPct: Math.round(vowelRatio * 100),
+    upperPct: Math.round(upperRatio * 100),
+    chimeSeed, hue, sat,
+  };
+  return { p, meta };
+}
+
+/* ───────────────────────── stage & anatomy ───────────────────────── */
+
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, DPR = 1, minDim = 600;
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  minDim = Math.min(W, H);
+  ctx.fillStyle = '#050609';
+  ctx.fillRect(0, 0, W, H);
+  rebuildFlow();
+}
+window.addEventListener('resize', resize);
+
+/* fixed anatomy: per-particle structure constants, seeded once so the same
+   particle morphs smoothly between genomes */
+const MAXP = 4200;
+const A = {
+  u:   new Float32Array(MAXP),   /* angular coordinate 0..1 */
+  s:   new Float32Array(MAXP),   /* distance along limb 0..1 */
+  v:   new Float32Array(MAXP),   /* lateral -1..1 */
+  sz:  new Float32Array(MAXP),
+  ph:  new Float32Array(MAXP),   /* personal phase */
+  ci:  new Uint8Array(MAXP),     /* palette slot 0..3 */
+  core:new Uint8Array(MAXP),
+  x:   new Float32Array(MAXP), y: new Float32Array(MAXP),
+  vx:  new Float32Array(MAXP), vy: new Float32Array(MAXP),
+};
+(function buildAnatomy(){
+  const r = mulberry32(0xC0FFEE);
+  for (let i = 0; i < MAXP; i++){
+    A.u[i] = r();
+    const q = r();
+    A.s[i] = q * q * (3 - 2 * q) * 0.98 + 0.01;   /* denser near body */
+    A.v[i] = (r() * 2 - 1) * (r() < 0.75 ? 1 : 0.35);
+    A.sz[i] = 0.55 + r() * r() * 1.7;
+    A.ph[i] = r() * TAU;
+    A.core[i] = r() < 0.14 ? 1 : 0;
+    const s = A.s[i];
+    A.ci[i] = r() < 0.07 ? 3 : (s < 0.16 ? 0 : s < 0.55 ? 1 : 2);
+    if (A.core[i]) { A.ci[i] = r() < 0.5 ? 0 : 3; A.sz[i] *= 1.5; }
+  }
+})();
+
+/* ───────────────────────── flow field (curl of fbm) ───────────────────────── */
+
+const FLOW = { cell: 42, cols: 0, rows: 0, vx: null, vy: null };
+function rebuildFlow(){
+  FLOW.cols = Math.ceil(W / FLOW.cell) + 2;
+  FLOW.rows = Math.ceil(H / FLOW.cell) + 2;
+  FLOW.vx = new Float32Array(FLOW.cols * FLOW.rows);
+  FLOW.vy = new Float32Array(FLOW.cols * FLOW.rows);
+}
+function updateFlow(t, P){
+  const ns = P.noiseScale * FLOW.cell, e = 0.31, z = t * P.drift;
+  let k = 0;
+  for (let gy = 0; gy < FLOW.rows; gy++){
+    const ny = gy * ns;
+    for (let gx = 0; gx < FLOW.cols; gx++, k++){
+      const nx = gx * ns;
+      /* curl: rotate gradient of scalar field → divergence-free swirl */
+      const dx = fbm(nx + e, ny, z) - fbm(nx - e, ny, z);
+      const dy = fbm(nx, ny + e, z) - fbm(nx, ny - e, z);
+      FLOW.vx[k] = dy * 2.2;
+      FLOW.vy[k] = -dx * 2.2;
+    }
+  }
+}
+function sampleFlow(x, y, out){
+  const fx = clamp(x / FLOW.cell, 0, FLOW.cols - 1.001);
+  const fy = clamp(y / FLOW.cell, 0, FLOW.rows - 1.001);
+  const gx = Math.floor(fx), gy = Math.floor(fy);
+  const tx = fx - gx, ty = fy - gy;
+  const i = gy * FLOW.cols + gx, j = i + FLOW.cols;
+  out.x = lerp(lerp(FLOW.vx[i], FLOW.vx[i+1], tx), lerp(FLOW.vx[j], FLOW.vx[j+1], tx), ty);
+  out.y = lerp(lerp(FLOW.vy[i], FLOW.vy[i+1], tx), lerp(FLOW.vy[j], FLOW.vy[j+1], tx), ty);
+}
+
+/* ───────────────────────── glow sprites ───────────────────────── */
+
+const sprites = [null, null, null, null];
+let spriteSig = '';
+function paletteStops(hue, sat, hue2){
+  /* 0 core-hot · 1 mid body · 2 outer drift · 3 accent */
+  return [
+    { h: hue,  s: Math.min(sat * 0.5, 40), l: 88 },
+    { h: hue,  s: sat,        l: 62 },
+    { h: (hue + 14) % 360, s: sat * 0.9, l: 46 },
+    { h: hue2, s: Math.min(sat + 12, 92), l: 66 },
+  ];
+}
+function makeSprite(h, s, l){
+  const c = document.createElement('canvas');
+  c.width = c.height = 48;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(24, 24, 0, 24, 24, 24);
+  grad.addColorStop(0,    `hsla(${h} ${s}% ${Math.min(l + 22, 96)}% / .95)`);
+  grad.addColorStop(0.22, `hsla(${h} ${s}% ${l}% / .55)`);
+  grad.addColorStop(0.55, `hsla(${h} ${s}% ${Math.max(l - 12, 8)}% / .16)`);
+  grad.addColorStop(1,    `hsla(${h} ${s}% ${l}% / 0)`);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 48, 48);
+  return c;
+}
+function refreshSprites(hue, sat, hue2){
+  const sig = (hue | 0) + '|' + (sat | 0) + '|' + (hue2 | 0);
+  if (sig === spriteSig) return;
+  spriteSig = sig;
+  const stops = paletteStops(hue, sat, hue2);
+  for (let i = 0; i < 4; i++) sprites[i] = makeSprite(stops[i].h, stops[i].s, stops[i].l);
+  document.documentElement.style.setProperty('--accent', `hsl(${hue} ${Math.min(sat + 6, 88)}% 64%)`);
+}
+
+/* ───────────────────────── morphing state ───────────────────────── */
+
+let target = genomeFromText(document.getElementById('thought').value);
+let cur = Object.assign({}, target.p);
+let curHue = target.p.hue, curHue2 = target.p.hue2, curSat = target.p.sat, curSym = target.p.sym;
+let curCount = target.p.count;
+
+function setThought(text){
+  target = genomeFromText(text);
+  updateReadout();
+  if (audio.on) audio.retune();
+}
+
+/* ───────────────────────── readout (specimen label) ───────────────────────── */
+
+const readoutEl = document.getElementById('readout');
+function updateReadout(){
+  const m = target.meta;
+  const sep = '<span class="sep">·</span>';
+  const symLabel = m.sym === 1 ? 'asymmetric' : m.sym === 2 ? '2-fold (bilateral)' : m.sym + '-fold radial';
+  const bits2 = [
+    `from <b>${m.words}</b> word${m.words === 1 ? '' : 's'}`,
+    m.qs ? `<b>${m.qs}</b> question${m.qs === 1 ? '' : 's'} — reaching` : null,
+    m.exes ? `<b>${m.exes}</b> exclamation${m.exes === 1 ? '' : 's'} — spined` : null,
+    m.upperPct >= 40 ? `<b>${m.upperPct}%</b> uppercase — loud` : null,
+    `vowels <b>${m.vowelPct}%</b>`,
+  ].filter(Boolean);
+  readoutEl.innerHTML =
+    `symmetry <b>${symLabel}</b>${sep}palette <b>${m.family}</b>${sep}` +
+    `temperament <b>${m.temperament}</b>${sep}<b>${m.count.toLocaleString('en-US')}</b> motes<br>` +
+    bits2.join(sep);
+}
+
+/* ───────────────────────── interaction ───────────────────────── */
+
+const input = document.getElementById('thought');
+let kick = 0;            /* pulse impulse, decays */
+let typeRipple = 0;
+input.addEventListener('input', () => { setThought(input.value); typeRipple = 1; });
+input.addEventListener('keydown', e => { if (e.key === 'Escape') input.blur(); });
+
+const pointer = { down: false, x: 0, y: 0, px: 0, py: 0 };
+canvas.addEventListener('pointerdown', e => {
+  input.blur();
+  pointer.down = true;
+  pointer.x = pointer.px = e.clientX; pointer.y = pointer.py = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!pointer.down) return;
+  pointer.x = e.clientX; pointer.y = e.clientY;
+});
+canvas.addEventListener('pointerup',   () => { pointer.down = false; });
+canvas.addEventListener('pointercancel', () => { pointer.down = false; });
+
+function pulse(){
+  kick = 1;
+  if (audio.on) audio.chime();
+}
+window.addEventListener('keydown', e => {
+  const typing = document.activeElement === input;
+  if (e.code === 'Space' && !typing){ e.preventDefault(); pulse(); }
+  if ((e.code === 'KeyS') && !typing && !e.metaKey && !e.ctrlKey){ e.preventDefault(); savePNG(); }
+});
+
+function savePNG(){
+  const a = document.createElement('a');
+  const slug = (input.value.trim() || 'untitled').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'untitled';
+  a.download = 'thoughtform-' + slug + '.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+document.getElementById('saveBtn').addEventListener('click', savePNG);
+
+/* becalmed mode — honors prefers-reduced-motion by default */
+const calmBtn = document.getElementById('calmBtn');
+let becalmed = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function renderCalm(){ calmBtn.setAttribute('aria-pressed', becalmed ? 'true' : 'false'); }
+calmBtn.addEventListener('click', () => { becalmed = !becalmed; renderCalm(); });
+renderCalm();
+
+/* ───────────────────────── gallery of specimen thoughts ───────────────────────── */
+
+const PRESETS = [
+  'What if memory is a place you can still visit?',
+  'Write it down before it dissolves.',
+  'every note is a letter to a future self',
+  'The sea does not hurry, and neither do ideas.',
+  'I FOUND THE ANSWER!',
+  'a quiet thought, barely a whisper',
+];
+const galleryEl = document.getElementById('gallery');
+PRESETS.forEach(t => {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.type = 'button'; b.textContent = t;
+  b.addEventListener('click', () => { input.value = t; setThought(t); typeRipple = 1; });
+  galleryEl.appendChild(b);
+});
+
+/* ───────────────────────── ambient audio (off by default) ───────────────────────── */
+
+const audio = {
+  on: false, ctx: null, master: null, oscs: [], filter: null, lfo: null, lfoGain: null,
+  chimeRnd: null,
+  start(){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    this.ctx = new AC();
+    const c = this.ctx;
+    this.master = c.createGain(); this.master.gain.value = 0;
+    this.master.connect(c.destination);
+    this.filter = c.createBiquadFilter();
+    this.filter.type = 'lowpass'; this.filter.frequency.value = 420; this.filter.Q.value = 0.8;
+    this.filter.connect(this.master);
+    this.lfo = c.createOscillator(); this.lfo.frequency.value = 0.07;
+    this.lfoGain = c.createGain(); this.lfoGain.gain.value = 140;
+    this.lfo.connect(this.lfoGain); this.lfoGain.connect(this.filter.frequency);
+    this.lfo.start();
+    for (const [type, mult, vol] of [['sine',1,0.5],['triangle',1.5,0.22],['sine',2.005,0.14]]){
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type; g.gain.value = vol;
+      o.connect(g); g.connect(this.filter);
+      o.start();
+      this.oscs.push({ o, mult });
+    }
+    this.retune();
+    this.master.gain.setTargetAtTime(0.11, c.currentTime, 0.8);
+    this.on = true;
+  },
+  baseFreq(){
+    /* pentatonic root from genome hue */
+    const degree = [0, 3, 5, 7, 10][Math.floor(curHue / 72) % 5];
+    return 55 * Math.pow(2, degree / 12) * 2;
+  },
+  retune(){
+    if (!this.ctx) return;
+    this.chimeRnd = mulberry32(target.meta.chimeSeed);
+    const f = this.baseFreq(), t = this.ctx.currentTime;
+    this.oscs.forEach(({ o, mult }) => o.frequency.setTargetAtTime(f * mult, t, 1.2));
+    this.lfo.frequency.setTargetAtTime(0.05 + cur.tempo * 0.03, t, 1);
+  },
+  chime(){
+    if (!this.ctx || !this.chimeRnd) return;
+    const c = this.ctx, t = c.currentTime;
+    const scale = [0, 3, 5, 7, 10, 12, 15];
+    const f = this.baseFreq() * 2 * Math.pow(2, scale[Math.floor(this.chimeRnd() * scale.length)] / 12);
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.09, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + 3);
+    o.onended = () => { o.disconnect(); g.disconnect(); };
+  },
+  stop(){
+    if (!this.ctx) return;
+    const c = this.ctx;
+    this.master.gain.setTargetAtTime(0, c.currentTime, 0.15);
+    const oscs = this.oscs, lfo = this.lfo, ctxRef = c;
+    setTimeout(() => {
+      oscs.forEach(({ o }) => { try { o.stop(); } catch(e){} });
+      try { lfo.stop(); } catch(e){}
+      ctxRef.close();
+    }, 500);
+    this.ctx = null; this.master = null; this.oscs = []; this.filter = null;
+    this.lfo = null; this.lfoGain = null; this.on = false;
+  },
+};
+const soundBtn = document.getElementById('soundBtn');
+soundBtn.addEventListener('click', () => {
+  if (audio.on) audio.stop(); else audio.start();
+  soundBtn.setAttribute('aria-pressed', audio.on ? 'true' : 'false');
+});
+window.addEventListener('pagehide', () => { if (audio.on) audio.stop(); });
+
+/* ───────────────────────── the organism ───────────────────────── */
+
+const flowV = { x: 0, y: 0 };
+let spinAngle = 0;
+let perfCap = MAXP;
+let dtEMA = 16.7, frameN = 0;
+
+function targetPos(i, t, P, cx, cy, scale, out){
+  const s = A.s[i];
+  if (A.core[i]){
+    /* nucleus: slow inner cloud */
+    const a = A.u[i] * TAU + spinAngle * 1.7 + Math.sin(t * 0.4 + A.ph[i]) * 0.25;
+    const r = scale * P.bodyR * (0.15 + A.s[i] * 0.75) *
+              (1 + P.pulseAmp * Math.sin(t * P.tempo + A.ph[i]) + kick * 0.35);
+    out.x = cx + Math.cos(a) * r;
+    out.y = cy + Math.sin(a) * r;
+    return;
+  }
+  /* fold angular coordinate into k-fold symmetry (k continuous for morphs) */
+  const k = curSym;
+  const a = A.u[i] * k;
+  const j = Math.floor(a);
+  const f = a - j;
+  const theta0 = ((j + 0.5) / k) * TAU + spinAngle;
+  const phase = limbHash(j) * TAU;
+  /* traveling pulse along the limb */
+  const pw = Math.sin(t * P.tempo - s * P.travel + phase * 0.3);
+  const kickW = kick * Math.exp(-s * 1.6) * 0.5 + kick * Math.sin(s * 9 - kick * 4) * 0.12;
+  /* sinuous limb curvature */
+  const bend = Math.sin(s * P.wav * Math.PI + phase + t * P.sway) * P.curl * s;
+  const theta = theta0 + bend;
+  /* radius with beaded grain */
+  const beadMod = 1 + P.bead * 0.05 * Math.sin(s * P.beads * TAU + phase);
+  const R = scale * (P.bodyR + s * P.reach) * beadMod *
+            (1 + P.pulseAmp * pw + kickW + typeRipple * 0.05 * Math.sin(s * 14 - typeRipple * 6));
+  /* limb width: tapered tendril with optional tip bulb */
+  const w = P.width * (Math.pow(1 - s, P.taper) + P.tipBulb * Math.exp(-((s - 0.9) * (s - 0.9)) / 0.012)) * scale;
+  const latOff = ((f - 0.5) * 2 * 0.6 + A.v[i] * 0.4) * w;
+  const ct = Math.cos(theta), st = Math.sin(theta);
+  out.x = cx + ct * R - st * latOff;
+  out.y = cy + st * R + ct * latOff;
+}
+
+const tp = { x: 0, y: 0 };
+let seeded = false;
+function seedPositions(t, P, cx, cy, scale){
+  for (let i = 0; i < MAXP; i++){
+    targetPos(i, t, P, cx, cy, scale, tp);
+    A.x[i] = tp.x; A.y[i] = tp.y; A.vx[i] = 0; A.vy[i] = 0;
+  }
+  seeded = true;
+}
+
+let lastMs = performance.now();
+let tSim = 0;
+
+function frame(nowMs){
+  requestAnimationFrame(frame);
+  let dt = (nowMs - lastMs) / 1000;
+  lastMs = nowMs;
+  if (dt > 0.05) dt = 0.05;
+  if (dt <= 0) return;
+
+  /* adaptive particle budget */
+  dtEMA += (dt * 1000 - dtEMA) * 0.05;
+  if (++frameN % 30 === 0){
+    if (dtEMA > 19 && perfCap > 700) perfCap = Math.max(700, Math.round(perfCap * 0.9));
+    else if (dtEMA < 14.5 && perfCap < MAXP) perfCap = Math.min(MAXP, Math.round(perfCap * 1.06));
+  }
+
+  const timeScale = becalmed ? 0.28 : 1;
+  tSim += dt * timeScale;
+  const t = tSim;
+
+  /* morph current genome toward target */
+  const mr = 1 - Math.exp(-dt * 2.6);
+  const T = target.p;
+  for (const key in cur){
+    if (key === 'hue' || key === 'hue2' || key === 'sat' || key === 'sym' || key === 'count') continue;
+    cur[key] += (T[key] - cur[key]) * mr;
+  }
+  curHue = lerpHue(curHue, T.hue, mr);
+  curHue2 = lerpHue(curHue2, T.hue2, mr);
+  curSat += (T.sat - curSat) * mr;
+  curSym += (T.sym - curSym) * mr;
+  curCount += (T.count - curCount) * mr;
+  refreshSprites(curHue, curSat, curHue2);
+
+  kick *= Math.exp(-dt * 2.4);
+  typeRipple *= Math.exp(-dt * 3.2);
+  spinAngle += cur.spin * dt * timeScale;
+
+  const P = cur;
+  const cx = W / 2, cy = H * 0.44;
+  const scale = minDim * P.scaleF;
+  if (!seeded) seedPositions(t, P, cx, cy, scale);
+
+  updateFlow(t, P);
+
+  /* trail fade (opaque canvas, so PNG snapshots keep the void) */
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = `rgba(5,6,9,${becalmed ? 0.10 : P.trail})`;
+  ctx.fillRect(0, 0, W, H);
+
+  /* pointer disturbance */
+  const pDown = pointer.down;
+  let pvx = 0, pvy = 0;
+  if (pDown){
+    pvx = (pointer.x - pointer.px) / Math.max(dt, 0.001);
+    pvy = (pointer.y - pointer.py) / Math.max(dt, 0.001);
+    pointer.px = pointer.x; pointer.py = pointer.y;
+  }
+  const pr2 = 150 * 150;
+
+  const n = Math.min(Math.round(curCount), perfCap, MAXP);
+  const spring = P.spring * (becalmed ? 0.8 : 1);
+  const flowAmt = P.flowAmt * (becalmed ? 0.25 : 1);
+  const damp = Math.exp(-dt * 4.2);
+
+  ctx.globalCompositeOperation = 'lighter';
+
+  for (let i = 0; i < n; i++){
+    targetPos(i, t, P, cx, cy, scale, tp);
+    let x = A.x[i], y = A.y[i];
+    let vx = A.vx[i], vy = A.vy[i];
+
+    vx += (tp.x - x) * spring * dt;
+    vy += (tp.y - y) * spring * dt;
+
+    sampleFlow(x, y, flowV);
+    vx += flowV.x * flowAmt * dt;
+    vy += flowV.y * flowAmt * dt;
+
+    if (pDown){
+      const dx = x - pointer.x, dy = y - pointer.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < pr2){
+        const fall = 1 - d2 / pr2;
+        const inv = 1 / (Math.sqrt(d2) + 4);
+        vx += (dx * inv * 260 + pvx * 0.55) * fall * dt;
+        vy += (dy * inv * 260 + pvy * 0.55) * fall * dt;
+      }
+    }
+
+    vx *= damp; vy *= damp;
+    x += vx * dt; y += vy * dt;
+    A.x[i] = x; A.y[i] = y; A.vx[i] = vx; A.vy[i] = vy;
+
+    const tw = 0.75 + 0.25 * Math.sin(t * 2.1 + A.ph[i]);   /* bioluminescent twinkle */
+    let r = A.sz[i] * (3.1 + kick * 2.2) * tw;
+    if (A.core[i]) r *= P.coreGlow + 0.6;
+    ctx.drawImage(sprites[A.ci[i]], x - r, y - r, r * 2, r * 2);
+  }
+}
+
+/* ───────────────────────── boot ───────────────────────── */
+
+resize();
+updateReadout();
+refreshSprites(curHue, curSat, curHue2);
+requestAnimationFrame(nowMs => { lastMs = nowMs; requestAnimationFrame(frame); });
+if (window.matchMedia('(pointer: fine)').matches) input.focus({ preventScroll: true });
+
+})();
+</script>

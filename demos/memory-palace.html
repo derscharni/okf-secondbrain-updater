@@ -1,0 +1,1286 @@
+<title>Memory Palace</title>
+<style>
+/* ============================================================
+   MEMORY PALACE — method of loci, software raycaster
+   Design: committed single-theme world (a stated choice).
+   A dusky candle-lit palace at night; the artifact is a game
+   screen with its own opaque ground, legible under either
+   viewer theme, so no light variant is provided.
+   Palette:
+     Nightstone      #0B0A12  ground / fog
+     Candle Plaster  #E8DECB  primary text
+     Ember           #E39A3B  loci glow, accent
+     Verdigris       #7FB7A3  journey / success
+     Mulled Wine     #8A3B4A  missed recall / danger
+     Dusk Stone      #494356  chrome, borders
+   Type: display+body serif (Iowan Old Style / Palatino /
+   Georgia — classical, bookish, Ciceronian); ui-monospace
+   for HUD data. All system stacks, zero external requests.
+   ============================================================ */
+:root{
+  --ink:#0B0A12;
+  --plaster:#E8DECB;
+  --plaster-dim:#B7AC93;
+  --ember:#E39A3B;
+  --ember-hi:#FFCF8A;
+  --verdigris:#7FB7A3;
+  --wine:#A44A5C;
+  --stone:#494356;
+  --stone-deep:#2A2634;
+  --panel:rgba(16,13,24,0.90);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Cascadia Mono",monospace;
+}
+html,body{height:100%;overflow:hidden;background:var(--ink);}
+#palace{
+  position:fixed;inset:0;background:var(--ink);color:var(--plaster);
+  font-family:var(--serif);overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+}
+#view{
+  position:absolute;inset:0;width:100%;height:100%;display:block;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+  cursor:crosshair;touch-action:none;outline:none;
+}
+#vignette{
+  position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 46%, transparent 52%, rgba(4,3,9,.55) 100%),
+    linear-gradient(to bottom, rgba(4,3,9,.25), transparent 18%, transparent 82%, rgba(4,3,9,.35));
+}
+/* ---------- HUD ---------- */
+.hud{position:absolute;pointer-events:none;}
+#plaque{
+  top:18px;left:20px;max-width:46vw;
+}
+#plaque .eyebrow{margin-bottom:3px;}
+#roomName{
+  font-size:clamp(20px,2.6vw,30px);font-weight:600;letter-spacing:.01em;
+  color:var(--plaster);text-shadow:0 2px 14px rgba(0,0,0,.8);
+  font-style:italic;
+}
+.eyebrow{
+  font-family:var(--mono);font-size:10px;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--ember);
+}
+#status{
+  top:18px;right:20px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;
+}
+#modeChip{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--plaster-dim);background:var(--panel);
+  border:1px solid var(--stone);border-radius:2px;padding:6px 10px;
+  font-variant-numeric:tabular-nums;
+}
+#modeChip b{color:var(--ember);font-weight:600;}
+#compassBox{
+  display:none;flex-direction:column;align-items:center;gap:2px;
+  background:var(--panel);border:1px solid var(--stone);border-radius:2px;
+  padding:8px 10px 5px;
+}
+#compassBox.on{display:flex;}
+#needle{width:34px;height:34px;transition:none;}
+#needle svg{display:block;width:100%;height:100%;}
+#compassDist{font-family:var(--mono);font-size:10px;color:var(--plaster-dim);font-variant-numeric:tabular-nums;}
+#compassLbl{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--ember);text-transform:uppercase;}
+#hint{
+  left:50%;bottom:14px;transform:translateX(-50%);
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--plaster-dim);
+  background:rgba(11,10,18,.72);padding:6px 14px;border-radius:2px;
+  border:1px solid rgba(73,67,86,.6);white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;
+}
+#hint kbd{
+  font-family:var(--mono);color:var(--ember-hi);background:var(--stone-deep);
+  border:1px solid var(--stone);border-radius:2px;padding:0 4px;font-size:10px;
+}
+#toolbar{
+  right:20px;bottom:14px;display:flex;gap:6px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end;
+}
+.tbtn{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--plaster-dim);background:var(--panel);border:1px solid var(--stone);
+  border-radius:2px;padding:7px 10px;cursor:pointer;
+}
+.tbtn:hover{color:var(--ember-hi);border-color:var(--ember);}
+.tbtn:focus-visible{outline:2px solid var(--ember);outline-offset:1px;}
+.tbtn u{text-decoration:underline;text-underline-offset:2px;color:var(--ember);}
+#minimap{
+  left:20px;bottom:14px;display:none;background:rgba(8,7,14,.88);
+  border:1px solid var(--stone);border-radius:2px;padding:6px;
+}
+#minimap.on{display:block;}
+#mmCanvas{display:block;}
+#mmLabel{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--plaster-dim);text-transform:uppercase;margin-top:4px;text-align:center;}
+/* ---------- Locus card ---------- */
+#card{
+  position:absolute;left:50%;bottom:58px;transform:translate(-50%,16px);
+  width:min(520px,calc(100vw - 32px));
+  background:linear-gradient(180deg, rgba(24,19,33,.96), rgba(14,11,21,.96));
+  border:1px solid var(--stone);border-top:2px solid var(--ember);
+  border-radius:3px;padding:16px 20px 15px;
+  box-shadow:0 12px 40px rgba(0,0,0,.7), 0 0 60px rgba(227,154,59,.07);
+  opacity:0;visibility:hidden;transition:opacity .22s ease, transform .22s ease, visibility .22s;
+  pointer-events:none;
+}
+#card.on{opacity:1;visibility:visible;transform:translate(-50%,0);pointer-events:auto;}
+#card.correct{border-top-color:var(--verdigris);}
+#card.wrong{border-top-color:var(--wine);}
+#cardEyebrow{margin-bottom:6px;}
+#cardTitle{
+  font-size:22px;font-weight:700;letter-spacing:.01em;color:var(--ember-hi);
+  margin-bottom:6px;text-wrap:balance;line-height:1.15;
+}
+#cardBody{font-size:14.5px;line-height:1.55;color:var(--plaster);max-width:62ch;font-style:italic;}
+#cardBody b{color:var(--ember-hi);font-style:normal;}
+#recallRow{display:none;margin-top:12px;gap:8px;}
+#card.recalling #recallRow{display:flex;}
+#recallInput{
+  flex:1;min-width:0;font-family:var(--serif);font-size:15px;color:var(--plaster);
+  background:rgba(11,10,18,.85);border:1px solid var(--stone);border-radius:2px;
+  padding:8px 10px;
+}
+#recallInput:focus{outline:2px solid var(--ember);outline-offset:0;border-color:var(--ember);}
+.cardBtn{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  background:var(--ember);color:#20140A;border:0;border-radius:2px;padding:8px 14px;
+  cursor:pointer;font-weight:700;
+}
+.cardBtn.ghost{background:transparent;color:var(--plaster-dim);border:1px solid var(--stone);font-weight:400;}
+.cardBtn:hover{filter:brightness(1.1);}
+.cardBtn:focus-visible{outline:2px solid var(--ember-hi);outline-offset:1px;}
+/* ---------- Modals ---------- */
+.scrim{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(5,4,10,.78);backdrop-filter:blur(3px);z-index:20;padding:16px;
+}
+.scrim.on{display:flex;}
+.modal{
+  width:min(600px,100%);max-height:88vh;overflow-y:auto;
+  background:linear-gradient(180deg,#1A1526,#100D1A);
+  border:1px solid var(--stone);border-top:2px solid var(--ember);border-radius:3px;
+  padding:30px 34px 26px;box-shadow:0 24px 80px rgba(0,0,0,.8);
+}
+.modal h1{
+  font-size:clamp(28px,4.4vw,40px);font-weight:700;line-height:1.05;letter-spacing:.005em;
+  margin:6px 0 14px;text-wrap:balance;
+}
+.modal h1 em{font-style:italic;color:var(--ember-hi);}
+.modal h2{font-size:20px;font-weight:700;margin:4px 0 10px;color:var(--ember-hi);}
+.modal p{font-size:14.5px;line-height:1.6;color:var(--plaster);max-width:62ch;margin:0 0 12px;}
+.modal p.dim{color:var(--plaster-dim);font-size:13px;}
+.controlsGrid{
+  display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:14px 0 18px;
+  font-family:var(--mono);font-size:11.5px;color:var(--plaster-dim);align-items:center;
+}
+.controlsGrid kbd{
+  display:inline-block;font-family:var(--mono);font-size:10px;color:var(--ember-hi);
+  background:var(--stone-deep);border:1px solid var(--stone);border-radius:2px;
+  padding:2px 6px;letter-spacing:.06em;white-space:nowrap;
+}
+.modalBtns{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+.bigBtn{
+  font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  background:var(--ember);color:#20140A;border:0;border-radius:2px;
+  padding:13px 22px;font-weight:700;cursor:pointer;
+}
+.bigBtn:hover{filter:brightness(1.12);}
+.bigBtn:focus-visible{outline:2px solid var(--ember-hi);outline-offset:2px;}
+.bigBtn.ghost{background:transparent;color:var(--plaster-dim);border:1px solid var(--stone);font-weight:400;}
+.bigBtn.ghost:hover{color:var(--ember-hi);border-color:var(--ember);}
+#listArea{
+  width:100%;min-height:200px;resize:vertical;font-family:var(--mono);font-size:13px;
+  line-height:1.6;color:var(--plaster);background:rgba(8,7,14,.85);
+  border:1px solid var(--stone);border-radius:2px;padding:12px;
+}
+#listArea:focus{outline:2px solid var(--ember);border-color:var(--ember);}
+#listErr{color:var(--wine);font-family:var(--mono);font-size:11px;margin-top:8px;display:none;}
+/* results table */
+#resultsTableWrap{overflow-x:auto;margin:12px 0 4px;border:1px solid var(--stone-deep);border-radius:2px;}
+#resultsTable{width:100%;border-collapse:collapse;font-size:13px;}
+#resultsTable th{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--plaster-dim);text-align:left;padding:8px 10px;border-bottom:1px solid var(--stone-deep);
+}
+#resultsTable td{padding:7px 10px;border-bottom:1px solid rgba(42,38,52,.5);vertical-align:top;line-height:1.4;}
+#resultsTable td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--plaster-dim);font-size:11px;}
+#resultsTable tr.ok td.mark{color:var(--verdigris);}
+#resultsTable tr.bad td.mark{color:var(--wine);}
+#resultsTable td.given{color:var(--plaster-dim);font-style:italic;}
+#scoreLine{font-family:var(--mono);font-size:13px;color:var(--ember-hi);letter-spacing:.08em;font-variant-numeric:tabular-nums;}
+/* touch sticks */
+.stick{position:absolute;width:96px;height:96px;border:1px solid rgba(232,222,203,.25);border-radius:50%;
+  display:none;pointer-events:none;background:rgba(232,222,203,.04);}
+.stickKnob{position:absolute;width:40px;height:40px;left:28px;top:28px;border-radius:50%;
+  background:rgba(227,154,59,.35);border:1px solid rgba(227,154,59,.6);}
+/* toast */
+#toast{
+  position:absolute;top:70px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ember-hi);
+  background:var(--panel);border:1px solid var(--stone);border-radius:2px;
+  padding:8px 16px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:15;
+  text-transform:uppercase;white-space:nowrap;
+}
+#toast.on{opacity:1;}
+@media (prefers-reduced-motion: reduce){
+  #card{transition:opacity .01s, visibility .01s;transform:translate(-50%,0);}
+  #toast{transition:opacity .01s;}
+}
+@media (max-width:640px){
+  #plaque{max-width:56vw;}
+  .modal{padding:22px 20px 20px;}
+  #toolbar .tbtn{padding:6px 8px;}
+  #hint{display:none;}
+}
+</style>
+
+<div id="palace">
+  <canvas id="view" tabindex="-1"></canvas>
+  <div id="vignette"></div>
+
+  <div class="hud" id="plaque">
+    <div class="eyebrow">Memory Palace</div>
+    <div id="roomName">The Vestibule</div>
+  </div>
+
+  <div class="hud" id="status">
+    <div id="modeChip">Wandering</div>
+    <div id="compassBox">
+      <div id="compassLbl">Next locus</div>
+      <div id="needle"><svg viewBox="0 0 34 34" aria-hidden="true">
+        <circle cx="17" cy="17" r="15" fill="none" stroke="#494356" stroke-width="1"></circle>
+        <g id="needleG"><path d="M17 4 L22 21 L17 17.5 L12 21 Z" fill="#E39A3B"></path></g>
+      </svg></div>
+      <div id="compassDist">—</div>
+    </div>
+  </div>
+
+  <div class="hud" id="hint">Click to look around · <kbd>W A S D</kbd> walk · <kbd>←</kbd><kbd>→</kbd> turn</div>
+
+  <div class="hud" id="toolbar">
+    <button class="tbtn" type="button" id="btnJourney"><u>J</u>ourney</button>
+    <button class="tbtn" type="button" id="btnRecall"><u>T</u>est recall</button>
+    <button class="tbtn" type="button" id="btnList"><u>L</u>ist</button>
+    <button class="tbtn" type="button" id="btnMap"><u>M</u>ap</button>
+    <button class="tbtn" type="button" id="btnHelp"><u>H</u>elp</button>
+  </div>
+
+  <div class="hud" id="minimap">
+    <canvas id="mmCanvas" width="150" height="196"></canvas>
+    <div id="mmLabel">Explored</div>
+  </div>
+
+  <div id="card" role="status" aria-live="polite">
+    <div class="eyebrow" id="cardEyebrow">Locus I · The Vestibule</div>
+    <div id="cardTitle">Mercury</div>
+    <div id="cardBody">…</div>
+    <div id="recallRow">
+      <input id="recallInput" type="text" autocomplete="off" spellcheck="false"
+             placeholder="What waits at this locus?" aria-label="Your recall answer">
+      <button class="cardBtn" type="button" id="recallSubmit">Answer</button>
+      <button class="cardBtn ghost" type="button" id="recallSkip">Skip</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <div class="stick" id="stickBase"><div class="stickKnob" id="stickKnob"></div></div>
+
+  <!-- ======== start modal ======== -->
+  <div class="scrim on" id="startModal">
+    <div class="modal">
+      <div class="eyebrow">The method of loci</div>
+      <h1>A palace built for <em>remembering</em></h1>
+      <p>Twelve candle-lit rooms, one fixed route, twenty vivid images waiting at their stations.
+         Walk the route and let each locus burn its item into place — then walk it again,
+         blind, and prove the palace kept them.</p>
+      <p class="dim" id="deckLine">Tonight's deck: <b style="color:var(--ember-hi)">The Grand Tour</b> —
+         the eight planets in order, then the first twelve elements.</p>
+      <div class="controlsGrid">
+        <span><kbd>W A S D</kbd> / <kbd>↑ ↓</kbd></span><span>walk &amp; strafe</span>
+        <span><kbd>mouse</kbd> / <kbd>← →</kbd> / <kbd>Q E</kbd></span><span>look — click captures the mouse, Esc releases it</span>
+        <span><kbd>J</kbd></span><span>journey mode — a compass guides you locus to locus</span>
+        <span><kbd>T</kbd></span><span>recall test — loci go dark; type what was there</span>
+        <span><kbd>L</kbd></span><span>load your own list into the palace</span>
+        <span><kbd>M</kbd></span><span>minimap of explored rooms</span>
+      </div>
+      <p class="dim">Fully playable by keyboard alone. On touch: left thumb walks, right thumb looks.</p>
+      <div class="modalBtns">
+        <button class="bigBtn" type="button" id="btnEnter">Enter the palace</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== help modal ======== -->
+  <div class="scrim" id="helpModal">
+    <div class="modal">
+      <div class="eyebrow">How to use the palace</div>
+      <h2>The art of memory, briefly</h2>
+      <p>The method of loci — the memory palace — pins each item you must remember to a
+         <b style="color:var(--ember-hi)">place</b> along a route you know well. To recall the list, you walk
+         the route in your mind and the places hand the items back, in order.</p>
+      <p><b style="color:var(--ember-hi)">Journey</b> guides you along the route with a compass; stand at
+         each glowing locus to meet its image. <b style="color:var(--ember-hi)">Recall</b> darkens every locus
+         and asks you to type what lived there. <b style="color:var(--ember-hi)">List</b> lets you move your own
+         items in — one per line — and the palace re-shelves itself.</p>
+      <div class="controlsGrid">
+        <span><kbd>W A S D</kbd></span><span>walk &amp; strafe</span>
+        <span><kbd>Shift</kbd></span><span>hurry</span>
+        <span><kbd>← →</kbd> / <kbd>Q E</kbd></span><span>turn without the mouse</span>
+        <span><kbd>J</kbd> <kbd>T</kbd> <kbd>L</kbd> <kbd>M</kbd> <kbd>H</kbd></span><span>journey · recall · list · map · help</span>
+        <span><kbd>Esc</kbd></span><span>release mouse / close panels</span>
+      </div>
+      <div class="modalBtns">
+        <button class="bigBtn" type="button" id="btnHelpClose">Back to the palace</button>
+        <button class="bigBtn ghost" type="button" id="btnRebuild">Rebuild the palace</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== list modal ======== -->
+  <div class="scrim" id="listModal">
+    <div class="modal">
+      <div class="eyebrow">Your own deck</div>
+      <h2>Move your list into the palace</h2>
+      <p class="dim">One item per line, 3 to 40 items. The palace places them along the fixed route
+         and offers a mnemonic prompt for each — your job is to make the image vivid.</p>
+      <textarea id="listArea" placeholder="oat milk&#10;birthday card for Lena&#10;renew passport&#10;…" aria-label="Your list, one item per line"></textarea>
+      <div id="listErr"></div>
+      <div class="modalBtns">
+        <button class="bigBtn" type="button" id="btnListApply">Furnish the palace</button>
+        <button class="bigBtn ghost" type="button" id="btnListDefault">Restore the Grand Tour</button>
+        <button class="bigBtn ghost" type="button" id="btnListClose">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== results modal ======== -->
+  <div class="scrim" id="resultsModal">
+    <div class="modal">
+      <div class="eyebrow">Recall complete</div>
+      <h2 id="resultsHead">The palace remembers you</h2>
+      <div id="scoreLine">17 / 20</div>
+      <div id="resultsTableWrap">
+        <table id="resultsTable">
+          <thead><tr><th>#</th><th></th><th>Item</th><th>You wrote</th></tr></thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+      <div class="modalBtns">
+        <button class="bigBtn" type="button" id="btnRetry">Walk it again</button>
+        <button class="bigBtn ghost" type="button" id="btnResultsClose">Back to wandering</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   0. Utilities
+   ============================================================ */
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+let rng = mulberry32((Math.random()*1e9)|0);
+const ri  = (a,b)=>a + Math.floor(rng()*(b-a+1));     // int in [a,b]
+const pick= arr=>arr[Math.floor(rng()*arr.length)];
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  return arr;
+}
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+function roman(n){
+  const T=[[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];
+  let s="";for(const [v,r] of T){while(n>=v){s+=r;n-=v;}}return s;
+}
+function norm(s){
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")
+          .replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim();
+}
+function lev(a,b){
+  const m=a.length,n=b.length;
+  if(!m)return n; if(!n)return m;
+  let prev=new Array(n+1),cur=new Array(n+1);
+  for(let j=0;j<=n;j++)prev[j]=j;
+  for(let i=1;i<=m;i++){
+    cur[0]=i;
+    for(let j=1;j<=n;j++){
+      cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    }
+    [prev,cur]=[cur,prev];
+  }
+  return prev[n];
+}
+function answerMatches(given,truth){
+  const g=norm(given),t=norm(truth);
+  if(!g)return false;
+  if(g===t)return true;
+  if(t.length>=4 && (g.includes(t)||t.includes(g)) && g.length>=Math.min(3,t.length))return true;
+  return lev(g,t) <= Math.max(1,Math.floor(t.length/4));
+}
+function escapeHtml(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+/* ============================================================
+   1. Palette + palace constants
+   ============================================================ */
+const FOG_R=11,FOG_G=10,FOG_B=18;                 // Nightstone
+const FOG_MAX=14;                                  // fog reaches full at this distance
+const GRID_C=3, GRID_R=4, CELL=9;
+const MW=GRID_C*CELL+2, MH=GRID_R*CELL+2;          // 29 x 38 tiles
+const TEX=64;
+const PLAYER_R=0.27;
+
+const ROOM_NAMES=[
+  "The Vestibule","The Cartography Room","The Listening Gallery","The Orrery",
+  "The Scriptorium","The Candle Library","The Hall of Masks","The Fountain Court",
+  "The Tapestry Stair","The Reliquary","The Clock Room","The Conservatory"
+];
+
+/* ============================================================
+   2. Default deck — "The Grand Tour"
+   ============================================================ */
+const DEFAULT_DECK={
+  title:"The Grand Tour",
+  line:'Tonight\'s deck: <b style="color:var(--ember-hi)">The Grand Tour</b> — the eight planets in order, then the first twelve elements.',
+  items:[
+    ["Mercury","A molten silver <b>thermometer</b> sprints past on tiny legs, sweating beads of quicksilver onto the flagstones."],
+    ["Venus","A blinding <b>vanity mirror</b> fogged with acid perfume; the reflection inside blows you a kiss."],
+    ["Earth","A dripping ball of <b>blue clay</b> rests on a velvet cushion, sprouting tiny forests while you watch."],
+    ["Mars","A rusted <b>suit of armor</b> kicks red sand across the floor, a war drum booming under its arm."],
+    ["Jupiter","A king so vast his <b>crown scrapes the ceiling</b>; a red storm turns slowly in his open eye."],
+    ["Saturn","A hula-hooping <b>grandfather</b> spins seventy rings of ice around his waist and drops not one."],
+    ["Uranus","A man tipped fully <b>sideways on a frozen chair</b>, rolling in slow circles through pale blue mist."],
+    ["Neptune","A <b>trident</b> hums inside a barrel of ink-dark seawater; wind howls out when you lift the lid."],
+    ["Hydrogen","A single <b>red balloon</b> strains at its string, humming with the energy of a newborn star."],
+    ["Helium","A choir of <b>mice singing soprano</b>, drifting gently up toward the vaulted ceiling."],
+    ["Lithium","A battery-shaped <b>grasshopper</b> lies on a psychiatrist's couch, twitching, finally calm."],
+    ["Beryllium","An <b>emerald beryl</b> the size of a fist buzzes on its plinth like a trapped bee."],
+    ["Boron","<b>Sir Boring</b>, a tedious knight, scrubs the floor with borax soap and sighs theatrically."],
+    ["Carbon","A lump of <b>coal shakes hands with a diamond</b>; they are, awkwardly, identical twins."],
+    ["Nitrogen","A frost-breathing <b>knight exhales a fog</b> that fills four-fifths of the room."],
+    ["Oxygen","<b>Eight candles</b> gasp and flare as an invisible bellows breathes across them."],
+    ["Fluorine","A grinning <b>tooth the size of a shield</b>, polished until it squeaks."],
+    ["Neon","A buzzing scarlet sign flickers <b>NO VACANCY</b> in a noble, standoffish font."],
+    ["Sodium","A <b>salt shaker dives into a bathtub</b> and erupts in a fizz of orange sparks."],
+    ["Magnesium","A strip of <b>silver ribbon burns white</b> — too bright to look at; its ghost stays when you blink."]
+  ]
+};
+const MNEMONIC_PROMPTS=[
+  "Make it absurd: picture <b>{item}</b> ten times too large, wedged in the doorway of {room}.",
+  "Set it gently alight: <b>{item}</b> smolders on a marble plinth here in {room}, smelling of beeswax.",
+  "Give it a voice: <b>{item}</b> whispers your name as you cross {room}.",
+  "Flood the senses: what does <b>{item}</b> smell like? Let it fill {room} to the rafters.",
+  "Put it in motion: <b>{item}</b> juggles itself, badly, in the middle of {room}.",
+  "Make it precious: <b>{item}</b> sits in a reliquary of glass and gold, guarded by a sleepy cat."
+];
+
+/* ============================================================
+   3. Palace generation
+   rooms on a 3×4 grid of cells, joined by a randomized
+   spanning tree (guaranteed connectivity) + 3 extra doors.
+   ============================================================ */
+let solid, floorRoom, wallTex, seen;   // tile arrays
+let rooms=[], route=[];                // route = room ids in journey order
+let spawn={x:0,y:0,a:0};
+const idx=(x,y)=>y*MW+x;
+function solidAt(x,y){
+  const tx=x|0,ty=y|0;
+  if(tx<0||ty<0||tx>=MW||ty>=MH)return true;
+  return solid[idx(tx,ty)]===1;
+}
+
+function generatePalace(){
+  solid=new Uint8Array(MW*MH).fill(1);
+  floorRoom=new Int16Array(MW*MH).fill(-9);
+  wallTex=new Int16Array(MW*MH).fill(-1);
+  seen=new Uint8Array(MW*MH);
+  rooms=[];
+
+  // --- carve one room per cell ---
+  for(let gr=0;gr<GRID_R;gr++)for(let gc=0;gc<GRID_C;gc++){
+    const id=rooms.length;
+    const w=ri(5,7),h=ri(5,7);
+    const x0=1+gc*CELL+ri(1,CELL-1-w);
+    const y0=1+gr*CELL+ri(1,CELL-1-h);
+    for(let y=y0;y<y0+h;y++)for(let x=x0;x<x0+w;x++){
+      solid[idx(x,y)]=0; floorRoom[idx(x,y)]=id;
+    }
+    rooms.push({id,gc,gr,x0,y0,x1:x0+w-1,y1:y0+h-1,
+      cx:x0+w/2,cy:y0+h/2,name:"",hue:0,pattern:0,entered:false});
+  }
+
+  // --- spanning tree over the cell grid (randomized Kruskal) ---
+  const edges=[];
+  for(let gr=0;gr<GRID_R;gr++)for(let gc=0;gc<GRID_C;gc++){
+    const a=gr*GRID_C+gc;
+    if(gc+1<GRID_C)edges.push([a,gr*GRID_C+gc+1]);
+    if(gr+1<GRID_R)edges.push([a,(gr+1)*GRID_C+gc]);
+  }
+  shuffle(edges);
+  const parent=rooms.map((_,i)=>i);
+  const find=i=>{while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;};
+  const treeEdges=[],spare=[];
+  for(const [a,b] of edges){
+    const ra=find(a),rb=find(b);
+    if(ra!==rb){parent[ra]=rb;treeEdges.push([a,b]);}
+    else spare.push([a,b]);
+  }
+  const extra=shuffle(spare).slice(0,3);
+  const allEdges=treeEdges.concat(extra);
+
+  // --- carve L-shaped corridors between room centers ---
+  function carve(x,y){
+    const i=idx(x,y);
+    if(solid[i]===1){solid[i]=0;floorRoom[i]=-1;}
+  }
+  for(const [a,b] of allEdges){
+    const A=rooms[a],B=rooms[b];
+    let x=Math.round(A.cx-0.5),y=Math.round(A.cy-0.5);
+    const tx=Math.round(B.cx-0.5),ty=Math.round(B.cy-0.5);
+    const xFirst=rng()<0.5;
+    const steps=[];
+    if(xFirst){while(x!==tx){x+=Math.sign(tx-x);steps.push([x,y]);}
+               while(y!==ty){y+=Math.sign(ty-y);steps.push([x,y]);}}
+    else      {while(y!==ty){y+=Math.sign(ty-y);steps.push([x,y]);}
+               while(x!==tx){x+=Math.sign(tx-x);steps.push([x,y]);}}
+    for(const [sx,sy] of steps)carve(sx,sy);
+  }
+
+  // --- paint room-owned wall tiles (corridor walls stay neutral -1) ---
+  for(let y=1;y<MH-1;y++)for(let x=1;x<MW-1;x++){
+    const r=floorRoom[idx(x,y)];
+    if(r>=0){
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+        const j=idx(x+dx,y+dy);
+        if(solid[j]===1)wallTex[j]=r;
+      }
+    }
+  }
+
+  // --- route: DFS over the spanning tree from room 0 (top-left) ---
+  const adj=rooms.map(()=>[]);
+  for(const [a,b] of treeEdges){adj[a].push(b);adj[b].push(a);}
+  route=[];
+  const visited=new Uint8Array(rooms.length);
+  (function dfs(r){
+    visited[r]=1;route.push(r);
+    for(const n of shuffle(adj[r].slice()))if(!visited[n])dfs(n);
+  })(0);
+
+  // --- name + skin rooms in route order ---
+  route.forEach((rid,i)=>{
+    const r=rooms[rid];
+    r.name=ROOM_NAMES[i%ROOM_NAMES.length];
+    r.hue=(30+i*137.5)%360;
+    r.pattern=i%4;
+  });
+
+  // --- spawn in the first room, facing its longest axis ---
+  const r0=rooms[route[0]];
+  spawn={x:r0.cx,y:r0.cy,a:(r0.x1-r0.x0>=r0.y1-r0.y0)?0:Math.PI/2};
+}
+
+/* ============================================================
+   4. Procedural wall textures
+   ============================================================ */
+let texBase=[],texDark=[],neutralBase,neutralDark;
+function makeCanvas(w,h){const c=document.createElement("canvas");c.width=w;c.height=h;return c;}
+function makeWallTex(hue,sat,light,pattern,seedN){
+  const c=makeCanvas(TEX,TEX),g=c.getContext("2d");
+  const r2=mulberry32(seedN);
+  const H=(h2,s2,l2)=>`hsl(${h2.toFixed(0)} ${s2}% ${l2}%)`;
+  g.fillStyle=H(hue,sat,light*0.7);g.fillRect(0,0,TEX,TEX);
+  if(pattern===0){            // ashlar blocks
+    const bh=16,bw=32;
+    for(let row=0;row<TEX/bh;row++){
+      const off=(row%2)?bw/2:0;
+      for(let bx=-1;bx<TEX/bw+1;bx++){
+        const x=bx*bw+off;
+        g.fillStyle=H(hue+r2()*8-4,sat,light+r2()*7-3);
+        g.fillRect(x+1,row*bh+1,bw-2,bh-2);
+      }
+    }
+  }else if(pattern===1){      // small brick
+    const bh=8,bw=16;
+    for(let row=0;row<TEX/bh;row++){
+      const off=(row%2)?bw/2:0;
+      for(let bx=-1;bx<TEX/bw+1;bx++){
+        const x=bx*bw+off;
+        g.fillStyle=H(hue+r2()*10-5,sat+4,light+r2()*8-4);
+        g.fillRect(x+1,row*bh+1,bw-2,bh-2);
+      }
+    }
+  }else if(pattern===2){      // wainscot panels
+    g.fillStyle=H(hue,sat,light);g.fillRect(0,0,TEX,TEX);
+    for(let x=0;x<TEX;x+=16){
+      g.fillStyle=H(hue,sat,light-9);g.fillRect(x,6,2,TEX-12);
+      g.fillStyle=H(hue,sat-4,light+7);g.fillRect(x+2,6,1,TEX-12);
+      g.fillStyle=H(hue,sat,light+3);g.fillRect(x+5,10,9,TEX-22);
+    }
+    g.fillStyle=H(hue,sat,light-11);g.fillRect(0,4,TEX,2);g.fillRect(0,TEX-8,TEX,2);
+  }else{                      // drapery folds
+    for(let x=0;x<TEX;x++){
+      const l=light+7*Math.sin(x*0.55+seedN)+3*Math.sin(x*1.3);
+      g.fillStyle=H(hue,sat+8,clamp(l,8,60));
+      g.fillRect(x,0,1,TEX);
+    }
+    g.fillStyle=H(hue,sat,light-12);g.fillRect(0,TEX-6,TEX,2); // hem
+  }
+  // cornice + baseboard
+  g.fillStyle=`rgba(255,230,180,0.10)`;g.fillRect(0,0,TEX,3);
+  g.fillStyle=`rgba(0,0,0,0.38)`;g.fillRect(0,TEX-4,TEX,4);
+  // grain
+  for(let i=0;i<260;i++){
+    g.fillStyle=r2()<0.75?"rgba(0,0,0,0.16)":"rgba(255,226,170,0.06)";
+    g.fillRect((r2()*TEX)|0,(r2()*TEX)|0,1,r2()<0.3?2:1);
+  }
+  return c;
+}
+function darken(c){
+  const d=makeCanvas(TEX,TEX),g=d.getContext("2d");
+  g.drawImage(c,0,0);
+  g.fillStyle="rgba(4,3,10,0.38)";g.fillRect(0,0,TEX,TEX);
+  return d;
+}
+function buildTextures(){
+  texBase=[];texDark=[];
+  rooms.forEach((r,i)=>{
+    const c=makeWallTex(r.hue,26,33,r.pattern,1000+i*77);
+    texBase[r.id]=c;texDark[r.id]=darken(c);
+  });
+  neutralBase=makeWallTex(262,9,25,0,4242);
+  neutralDark=darken(neutralBase);
+}
+function texFor(t,dark){
+  if(t<0)return dark?neutralDark:neutralBase;
+  return dark?texDark[t]:texBase[t];
+}
+
+/* ============================================================
+   5. Loci — orbs along the route
+   ============================================================ */
+let deck={title:DEFAULT_DECK.title,items:DEFAULT_DECK.items.map(it=>({title:it[0],body:it[1]}))};
+let loci=[];   // {x,y,i,room,title,body,orb,orbSeen}
+let orbBlank;
+
+function makeOrb(label,coreHue,glowRGB){
+  const c=makeCanvas(TEX,TEX),g=c.getContext("2d");
+  const cx=TEX/2,cy=TEX/2;
+  let gr=g.createRadialGradient(cx,cy,2,cx,cy,TEX/2);
+  gr.addColorStop(0,`rgba(${glowRGB},0.95)`);
+  gr.addColorStop(0.28,`rgba(${glowRGB},0.55)`);
+  gr.addColorStop(0.6,`rgba(${glowRGB},0.16)`);
+  gr.addColorStop(1,`rgba(${glowRGB},0)`);
+  g.fillStyle=gr;g.fillRect(0,0,TEX,TEX);
+  gr=g.createRadialGradient(cx,cy-2,1,cx,cy,12);
+  gr.addColorStop(0,"#FFF3D8");
+  gr.addColorStop(0.7,coreHue);
+  gr.addColorStop(1,"rgba(0,0,0,0)");
+  g.fillStyle=gr;
+  g.beginPath();g.arc(cx,cy,12,0,7);g.fill();
+  g.strokeStyle="rgba(255,240,210,0.7)";g.lineWidth=1;
+  g.beginPath();g.arc(cx,cy,12.5,0,7);g.stroke();
+  g.fillStyle="#241203";
+  const fs=label.length<=2?11:label.length<=4?9:label.length<=5?8:6.5;
+  g.font=`700 ${fs}px Georgia,serif`;g.textAlign="center";g.textBaseline="middle";
+  g.fillText(label,cx,cy+0.5);
+  return c;
+}
+function placeLoci(){
+  loci=[];
+  const n=deck.items.length;
+  const per=Math.floor(n/route.length);
+  let rem=n-per*route.length,k=0;
+  const placeRng=mulberry32(777);
+  for(let ri2=0;ri2<route.length&&k<n;ri2++){
+    let count=per+(ri2<rem?1:0);
+    if(count===0&&k<n&&ri2===route.length-1)count=n-k;
+    const room=rooms[route[ri2]];
+    // candidate tiles: room floor next to a solid tile, not a doorway
+    const cands=[];
+    for(let y=room.y0;y<=room.y1;y++)for(let x=room.x0;x<=room.x1;x++){
+      if(floorRoom[idx(x,y)]!==room.id)continue;
+      let nearWall=false,nearDoor=false;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const j=idx(x+dx,y+dy);
+        if(solid[j]===1)nearWall=true;
+        if(solid[j]===0&&floorRoom[j]===-1)nearDoor=true;
+      }
+      if(nearWall&&!nearDoor)cands.push([x+0.5,y+0.5]);
+    }
+    // spawn-room guard: keep loci off the player start
+    const chosen=[];
+    const pool=cands.slice();
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(placeRng()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+    for(const p of pool){
+      if(chosen.length>=count)break;
+      if(ri2===0&&Math.hypot(p[0]-spawn.x,p[1]-spawn.y)<1.4)continue;
+      if(chosen.every(q=>Math.hypot(q[0]-p[0],q[1]-p[1])>=2))chosen.push(p);
+    }
+    while(chosen.length<count&&pool.length){ // relax spacing if the room is tight
+      const p=pool[chosen.length%pool.length];
+      if(!chosen.includes(p))chosen.push(p);else break;
+    }
+    for(const [x,y] of chosen){
+      if(k>=n)break;
+      const item=deck.items[k];
+      loci.push({
+        x,y,i:k,room:room.id,title:item.title,body:item.body,
+        orb:makeOrb(roman(k+1),"#E39A3B","227,154,59"),
+        orbSeen:makeOrb(roman(k+1),"#7FB7A3","127,183,163"),
+        met:false
+      });
+      k++;
+    }
+  }
+  orbBlank=makeOrb("?","#494356","110,104,132");
+}
+
+/* ============================================================
+   6. Player, input
+   ============================================================ */
+const player={x:2,y:2,a:0,pitch:0};
+const keys=Object.create(null);
+let pointerLocked=false;
+let touchMove={f:0,s:0};
+let touchActive=false;
+let typing=false;
+
+function canOccupy(x,y){
+  const r=PLAYER_R;
+  return !solidAt(x-r,y-r)&&!solidAt(x+r,y-r)&&!solidAt(x-r,y+r)&&!solidAt(x+r,y+r)
+       &&!solidAt(x-r,y)&&!solidAt(x+r,y)&&!solidAt(x,y-r)&&!solidAt(x,y+r);
+}
+function move(dt){
+  if(typing)return 0;
+  let f=0,s=0,turn=0;
+  if(keys.KeyW||keys.ArrowUp)f+=1;
+  if(keys.KeyS||keys.ArrowDown)f-=1;
+  if(keys.KeyA)s-=1;
+  if(keys.KeyD)s+=1;
+  if(keys.ArrowLeft||keys.KeyQ)turn-=1;
+  if(keys.ArrowRight||keys.KeyE)turn+=1;
+  f+=touchMove.f;s+=touchMove.s;
+  f=clamp(f,-1,1);s=clamp(s,-1,1);
+  const mag=Math.hypot(f,s);
+  if(mag>1){f/=mag;s/=mag;}
+  player.a+=turn*2.5*dt;
+  const speed=(keys.ShiftLeft||keys.ShiftRight)?4.8:3.1;
+  const dx=Math.cos(player.a),dy=Math.sin(player.a);
+  const rx=-dy,ry=dx; // right vector
+  const nx=player.x+(dx*f+rx*s)*speed*dt;
+  const ny=player.y+(dy*f+ry*s)*speed*dt;
+  if(canOccupy(nx,player.y))player.x=nx;
+  if(canOccupy(player.x,ny))player.y=ny;
+  return mag>0.05?speed:0;
+}
+
+/* ============================================================
+   7. Raycast renderer
+   ============================================================ */
+const view=document.getElementById("view");
+const ctx=view.getContext("2d");
+let W=480,H=270,planeLen=0.9,zBuffer=new Float32Array(W);
+const fogStyles=[];
+for(let i=0;i<=20;i++)fogStyles.push(`rgba(${FOG_R},${FOG_G},${FOG_B},${(i/20).toFixed(2)})`);
+
+function resize(){
+  const vw=Math.max(320,innerWidth),vh=Math.max(240,innerHeight);
+  H=clamp(Math.round(vh/3),200,380);
+  W=clamp(Math.round(H*vw/vh),260,760);
+  view.width=W;view.height=H;
+  planeLen=0.62*(W/H);
+  zBuffer=new Float32Array(W);
+  ctx.imageSmoothingEnabled=false;
+}
+addEventListener("resize",resize);
+
+let bobPhase=0,bobAmt=0;
+function render(t){
+  const dirX=Math.cos(player.a),dirY=Math.sin(player.a);
+  const planeX=-dirY*planeLen,planeY=dirX*planeLen;
+  const bob=RM?0:Math.sin(bobPhase)*bobAmt*(H*0.014);
+  const horizon=H/2+player.pitch+bob;
+
+  // ceiling + floor
+  let gr=ctx.createLinearGradient(0,0,0,Math.max(1,horizon));
+  gr.addColorStop(0,"#07060C");gr.addColorStop(1,"#0E0C17");
+  ctx.fillStyle=gr;ctx.fillRect(0,0,W,Math.max(1,horizon));
+  gr=ctx.createLinearGradient(0,Math.min(H-1,horizon),0,H);
+  gr.addColorStop(0,"#0C0A14");gr.addColorStop(0.55,"#171220");gr.addColorStop(1,"#221A28");
+  ctx.fillStyle=gr;ctx.fillRect(0,Math.min(H-1,horizon),W,H-horizon+1);
+
+  // walls — DDA per column (lodev), perpendicular distance: no fisheye
+  for(let x=0;x<W;x++){
+    const camX=2*x/W-1;
+    const rdx=dirX+planeX*camX, rdy=dirY+planeY*camX;
+    let mapX=player.x|0, mapY=player.y|0;
+    const dDx=rdx===0?1e30:Math.abs(1/rdx);
+    const dDy=rdy===0?1e30:Math.abs(1/rdy);
+    let stepX,stepY,sDx,sDy;
+    if(rdx<0){stepX=-1;sDx=(player.x-mapX)*dDx;}else{stepX=1;sDx=(mapX+1-player.x)*dDx;}
+    if(rdy<0){stepY=-1;sDy=(player.y-mapY)*dDy;}else{stepY=1;sDy=(mapY+1-player.y)*dDy;}
+    let side=0,hit=0,guard=0,tile=0;
+    while(!hit&&guard++<96){
+      if(sDx<sDy){sDx+=dDx;mapX+=stepX;side=0;}
+      else{sDy+=dDy;mapY+=stepY;side=1;}
+      if(mapX<0||mapY<0||mapX>=MW||mapY>=MH){hit=1;tile=idx(clamp(mapX,0,MW-1),clamp(mapY,0,MH-1));break;}
+      tile=idx(mapX,mapY);
+      if(solid[tile]===1)hit=1;
+    }
+    const perp=side===0?(sDx-dDx):(sDy-dDy);
+    const dist=Math.max(perp,0.02);
+    zBuffer[x]=dist;
+    const lineH=H/dist;
+    const drawStart=horizon-lineH/2;
+    let wallX=side===0?player.y+dist*rdy:player.x+dist*rdx;
+    wallX-=Math.floor(wallX);
+    let texX=(wallX*TEX)|0;
+    if((side===0&&rdx>0)||(side===1&&rdy<0))texX=TEX-texX-1;
+    const tex=texFor(wallTex[tile],side===1);
+    ctx.drawImage(tex,texX,0,1,TEX,x,drawStart,1,lineH);
+    // fog
+    const fa=clamp(dist/FOG_MAX,0,0.97);
+    if(fa>0.03){
+      ctx.fillStyle=fogStyles[Math.round(fa*20)];
+      ctx.fillRect(x,drawStart,1,lineH);
+    }
+  }
+
+  // sprites — depth-sorted billboards, clipped by zBuffer
+  const invDet=1/(planeX*dirY-dirX*planeY);
+  const order=[];
+  for(const L of loci){
+    const dx=L.x-player.x,dy=L.y-player.y;
+    const d2=dx*dx+dy*dy;
+    if(d2<FOG_MAX*FOG_MAX*1.4)order.push([d2,L]);
+  }
+  order.sort((a,b)=>b[0]-a[0]);
+  const targetL=(mode==="journey"||mode==="recall")?loci[progressIdx]:null;
+  for(const [d2,L] of order){
+    const relX=L.x-player.x,relY=L.y-player.y;
+    const trX=invDet*(dirY*relX-dirX*relY);
+    const trY=invDet*(-planeY*relX+planeX*relY);
+    if(trY<=0.12)continue;
+    const sx=(W/2)*(1+trX/trY);
+    let scale=0.72;
+    if(L===targetL&&!RM)scale*=1+0.1*Math.sin(t*0.004+L.i);
+    const sh=Math.abs(H/trY)*scale;
+    const sw=sh;
+    const bobV=(24/trY)*(H/270);
+    const dsY=horizon-sh/2+bobV*0.4;
+    const startX=Math.floor(sx-sw/2),endX=Math.ceil(sx+sw/2);
+    const dist=Math.sqrt(d2);
+    let alpha=clamp(1.25-dist/FOG_MAX,0,1);
+    if(alpha<=0.02)continue;
+    const img=(mode==="recall")?(L.i<progressIdx?(recallMarks[L.i]?L.orbSeen:orbBlank):orbBlank)
+             :(L.met?L.orbSeen:L.orb);
+    ctx.globalAlpha=alpha;
+    for(let stripe=Math.max(0,startX);stripe<Math.min(W,endX);stripe++){
+      if(trY>=zBuffer[stripe])continue;
+      const tx2=clamp(((stripe-(sx-sw/2))*TEX/sw)|0,0,TEX-1);
+      ctx.drawImage(img,tx2,0,1,TEX,stripe,dsY,1,sh);
+    }
+    ctx.globalAlpha=1;
+  }
+}
+
+/* ============================================================
+   8. Minimap
+   ============================================================ */
+const mm=document.getElementById("mmCanvas"),mg=mm.getContext("2d");
+const MMS=5;
+mm.width=MW*MMS;mm.height=MH*MMS;
+function markSeen(){
+  const px=player.x|0,py=player.y|0;
+  for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){
+    const x=px+dx,y=py+dy;
+    if(x>=0&&y>=0&&x<MW&&y<MH)seen[idx(x,y)]=1;
+  }
+  const r=floorRoom[idx(px,py)];
+  if(r>=0&&!rooms[r].entered){
+    rooms[r].entered=true;
+    const rm=rooms[r];
+    for(let y=rm.y0-1;y<=rm.y1+1;y++)for(let x=rm.x0-1;x<=rm.x1+1;x++)
+      if(x>=0&&y>=0&&x<MW&&y<MH)seen[idx(x,y)]=1;
+  }
+}
+function drawMinimap(){
+  mg.fillStyle="#08070E";mg.fillRect(0,0,mm.width,mm.height);
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const i=idx(x,y);
+    if(!seen[i])continue;
+    if(solid[i]===1){mg.fillStyle="#3B364A";}
+    else{
+      const r=floorRoom[i];
+      mg.fillStyle=r>=0?`hsl(${rooms[r].hue} 24% 22%)`:"#1B1826";
+    }
+    mg.fillRect(x*MMS,y*MMS,MMS,MMS);
+  }
+  // loci dots
+  for(const L of loci){
+    if(!seen[idx(L.x|0,L.y|0)])continue;
+    const isNext=(mode==="journey"||mode==="recall")&&loci[progressIdx]===L;
+    mg.fillStyle=isNext?"#FFCF8A":(L.met&&mode!=="recall"?"#7FB7A3":"#E39A3B");
+    mg.beginPath();mg.arc(L.x*MMS,L.y*MMS,isNext?3:2,0,7);mg.fill();
+  }
+  // player
+  mg.save();
+  mg.translate(player.x*MMS,player.y*MMS);
+  mg.rotate(player.a);
+  mg.fillStyle="#E8DECB";
+  mg.beginPath();mg.moveTo(5,0);mg.lineTo(-3.5,3.2);mg.lineTo(-3.5,-3.2);mg.closePath();mg.fill();
+  mg.restore();
+}
+
+/* ============================================================
+   9. HUD, card, modes
+   ============================================================ */
+const $=id=>document.getElementById(id);
+const roomNameEl=$("roomName"),modeChip=$("modeChip"),hintEl=$("hint"),
+      compassBox=$("compassBox"),needleG=$("needleG"),compassDist=$("compassDist"),
+      card=$("card"),cardEyebrow=$("cardEyebrow"),cardTitle=$("cardTitle"),cardBody=$("cardBody"),
+      recallInput=$("recallInput"),toast=$("toast"),minimapBox=$("minimap");
+
+let mode="free";            // free | journey | recall
+let progressIdx=0;          // next locus index in journey/recall
+let recallAnswers=[],recallMarks=[];
+let cardLocus=null;         // locus currently shown
+let recallOpenFor=-1;       // locus index the recall input is open for
+let recallFeedbackT=0;
+let currentRoomName="";
+let toastT=null;
+
+function showToast(msg){
+  toast.textContent=msg;toast.classList.add("on");
+  clearTimeout(toastT);toastT=setTimeout(()=>toast.classList.remove("on"),2200);
+}
+function roomLabelFor(L){const r=rooms[L.room];return r?r.name:"The Passage";}
+function updateRoomName(){
+  const r=floorRoom[idx(player.x|0,player.y|0)];
+  const name=r>=0?rooms[r].name:"The Passage";
+  if(name!==currentRoomName){currentRoomName=name;roomNameEl.textContent=name;}
+}
+function setModeChip(){
+  if(mode==="free")modeChip.innerHTML="Wandering";
+  else if(mode==="journey")modeChip.innerHTML=`Journey <b>${progressIdx}/${loci.length}</b>`;
+  else modeChip.innerHTML=`Recall <b>${progressIdx}/${loci.length}</b>`;
+  compassBox.classList.toggle("on",mode!=="free"&&progressIdx<loci.length);
+}
+function setHint(){
+  if(touchActive){hintEl.innerHTML="Left thumb walks · right thumb looks";return;}
+  if(pointerLocked)hintEl.innerHTML="<kbd>W A S D</kbd> walk · mouse looks · <kbd>J</kbd> journey · <kbd>T</kbd> recall · <kbd>M</kbd> map · <kbd>Esc</kbd> frees the mouse";
+  else hintEl.innerHTML="Click to look around · <kbd>W A S D</kbd> walk · <kbd>←</kbd><kbd>→</kbd> turn";
+}
+function hideCard(){card.classList.remove("on","recalling","correct","wrong");cardLocus=null;}
+function showLocusCard(L){
+  cardLocus=L;
+  card.classList.remove("recalling","correct","wrong");
+  cardEyebrow.textContent=`Locus ${roman(L.i+1)} · ${roomLabelFor(L)}`;
+  cardTitle.textContent=L.title;
+  cardBody.innerHTML=L.body;
+  card.classList.add("on");
+}
+function openRecallCard(L){
+  cardLocus=L;recallOpenFor=L.i;
+  card.classList.remove("correct","wrong");
+  card.classList.add("on","recalling");
+  cardEyebrow.textContent=`Locus ${roman(L.i+1)} · ${roomLabelFor(L)}`;
+  cardTitle.textContent="What lived here?";
+  cardBody.innerHTML="The image is gone. Walk the route in your mind — what did this station hold?";
+  recallInput.value="";
+  recallInput.focus();
+}
+function submitRecall(skip){
+  if(recallOpenFor<0)return;
+  const L=loci[recallOpenFor];
+  const given=skip?"":recallInput.value.trim();
+  const ok=!skip&&answerMatches(given,L.title);
+  recallAnswers[L.i]=given;recallMarks[L.i]=ok;
+  card.classList.remove("recalling");
+  card.classList.add(ok?"correct":"wrong");
+  cardTitle.textContent=ok?L.title:`It was: ${L.title}`;
+  cardBody.innerHTML=ok?"Held fast. "+L.body:L.body;
+  recallInput.blur();
+  recallOpenFor=-1;
+  recallFeedbackT=performance.now()+(RM?1400:1900);
+  progressIdx++;
+  setModeChip();
+  if(progressIdx>=loci.length)setTimeout(showResults,RM?1400:1900);
+}
+function startJourney(){
+  mode="journey";progressIdx=0;
+  loci.forEach(L=>L.met=false);
+  hideCard();setModeChip();
+  showToast("Journey begun — follow the compass");
+}
+function startRecall(){
+  mode="recall";progressIdx=0;
+  recallAnswers=new Array(loci.length).fill("");
+  recallMarks=new Array(loci.length).fill(false);
+  hideCard();setModeChip();
+  showToast("The loci go dark — walk the route and answer");
+}
+function stopToFree(){
+  mode="free";progressIdx=0;recallOpenFor=-1;
+  hideCard();setModeChip();
+}
+function showResults(){
+  mode="free";
+  const score=recallMarks.filter(Boolean).length,n=loci.length;
+  $("scoreLine").textContent=`${score} / ${n}`;
+  $("resultsHead").textContent=
+    score===n?"Flawless — the palace remembers you":
+    score>=n*0.7?"The palace held most of it":
+    score>=n*0.4?"The route needs another walk":
+    "Walk it again — slower this time";
+  const tb=$("resultsBody");tb.innerHTML="";
+  loci.forEach(L=>{
+    const tr=document.createElement("tr");
+    tr.className=recallMarks[L.i]?"ok":"bad";
+    tr.innerHTML=`<td class="num">${roman(L.i+1)}</td>`
+      +`<td class="mark">${recallMarks[L.i]?"✓":"✕"}</td>`
+      +`<td>${escapeHtml(L.title)}</td>`
+      +`<td class="given">${recallAnswers[L.i]?escapeHtml(recallAnswers[L.i]):"—"}</td>`;
+    tb.appendChild(tr);
+  });
+  hideCard();setModeChip();
+  openModal("resultsModal");
+}
+function updateProximity(now){
+  if(now<recallFeedbackT)return;               // let feedback linger
+  if(recallFeedbackT&&now>=recallFeedbackT){recallFeedbackT=0;hideCard();}
+  if(mode==="recall"){
+    if(progressIdx>=loci.length)return;
+    const T=loci[progressIdx];
+    const d=Math.hypot(T.x-player.x,T.y-player.y);
+    if(recallOpenFor<0&&d<1.5)openRecallCard(T);
+    else if(recallOpenFor>=0&&d>2.6){ // walked away: keep it open but don't force
+      // leave card open; answering is by choice
+    }
+    return;
+  }
+  // free / journey: nearest locus reveal
+  let best=null,bd=1e9;
+  for(const L of loci){
+    const d=Math.hypot(L.x-player.x,L.y-player.y);
+    if(d<bd){bd=d;best=L;}
+  }
+  const enter=1.35,exit=1.7;
+  if(best&&bd<enter){
+    if(cardLocus!==best){
+      showLocusCard(best);
+      if(!best.met){
+        best.met=true;
+        if(mode==="journey"&&best.i===progressIdx){
+          progressIdx++;setModeChip();
+          if(progressIdx>=loci.length){
+            setTimeout(()=>{
+              showToast("Route complete — press T to test your recall");
+              mode="free";setModeChip();
+            },600);
+          }
+        }else if(mode==="journey"&&best.i>progressIdx){
+          showToast(`Ahead of the route — locus ${roman(progressIdx+1)} comes first`);
+        }
+      }else if(mode==="journey"&&best.i===progressIdx){
+        progressIdx++;setModeChip();
+      }
+    }
+  }else if(cardLocus&&(!best||bd>exit)){
+    hideCard();
+  }
+}
+function updateCompass(){
+  if(mode==="free"||progressIdx>=loci.length)return;
+  const T=loci[progressIdx];
+  const ang=Math.atan2(T.y-player.y,T.x-player.x)-player.a;
+  needleG.setAttribute("transform",`rotate(${(ang*180/Math.PI).toFixed(1)} 17 17)`);
+  compassDist.textContent=Math.hypot(T.x-player.x,T.y-player.y).toFixed(0)+" m";
+  compassBox.querySelector("#compassLbl").textContent=`Locus ${roman(progressIdx+1)}`;
+}
+
+/* ============================================================
+   10. Modals
+   ============================================================ */
+const modals=["startModal","helpModal","listModal","resultsModal"];
+function anyModalOpen(){return modals.some(m=>$(m).classList.contains("on"));}
+function openModal(id){
+  modals.forEach(m=>$(m).classList.toggle("on",m===id));
+  if(document.pointerLockElement)document.exitPointerLock();
+  const first=$(id).querySelector("button,textarea,input");
+  if(first)setTimeout(()=>first.focus(),40);
+}
+function closeModals(){modals.forEach(m=>$(m).classList.remove("on"));view.focus();}
+
+$("btnEnter").addEventListener("click",()=>{closeModals();tryPointerLock();});
+$("btnHelp").addEventListener("click",()=>openModal("helpModal"));
+$("btnHelpClose").addEventListener("click",closeModals);
+$("btnRebuild").addEventListener("click",()=>{
+  rng=mulberry32((Math.random()*1e9)|0);
+  rebuildAll();closeModals();showToast("A new palace rises");
+});
+$("btnMap").addEventListener("click",()=>minimapBox.classList.toggle("on"));
+$("btnJourney").addEventListener("click",()=>{mode==="journey"?stopToFree():startJourney();view.focus();});
+$("btnRecall").addEventListener("click",()=>{mode==="recall"?stopToFree():startRecall();view.focus();});
+$("btnList").addEventListener("click",()=>openModal("listModal"));
+$("btnListClose").addEventListener("click",closeModals);
+$("btnResultsClose").addEventListener("click",closeModals);
+$("btnRetry").addEventListener("click",()=>{closeModals();startRecall();});
+$("btnListDefault").addEventListener("click",()=>{
+  deck={title:DEFAULT_DECK.title,items:DEFAULT_DECK.items.map(it=>({title:it[0],body:it[1]}))};
+  $("deckLine").innerHTML=DEFAULT_DECK.line;
+  placeLoci();stopToFree();closeModals();
+  showToast("The Grand Tour is back on its plinths");
+});
+$("btnListApply").addEventListener("click",()=>{
+  const lines=$("listArea").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  const err=$("listErr");
+  if(lines.length<3||lines.length>40){
+    err.style.display="block";
+    err.textContent=lines.length<3?"Give the palace at least 3 items.":"That's over 40 — trim the list so each locus stays vivid.";
+    return;
+  }
+  err.style.display="none";
+  deck={title:"Your deck",items:lines.map((s,i)=>({
+    title:s,
+    body:MNEMONIC_PROMPTS[i%MNEMONIC_PROMPTS.length]
+      .replace("{item}",escapeHtml(s))
+      .replace("{room}","this room")
+  }))};
+  placeLoci();stopToFree();closeModals();
+  showToast(`${lines.length} items shelved along the route`);
+});
+$("recallSubmit").addEventListener("click",()=>submitRecall(false));
+$("recallSkip").addEventListener("click",()=>submitRecall(true));
+recallInput.addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();submitRecall(false);}
+  e.stopPropagation();
+});
+recallInput.addEventListener("focus",()=>{typing=true;});
+recallInput.addEventListener("blur",()=>{typing=false;});
+$("listArea").addEventListener("focus",()=>{typing=true;});
+$("listArea").addEventListener("blur",()=>{typing=false;});
+
+/* ============================================================
+   11. Pointer lock, keyboard, touch
+   ============================================================ */
+function tryPointerLock(){
+  if(anyModalOpen()||touchActive)return;
+  try{
+    const p=view.requestPointerLock&&view.requestPointerLock();
+    if(p&&p.catch)p.catch(()=>{setHint();});
+  }catch(e){/* declined or unsupported — keyboard turning still works */}
+}
+view.addEventListener("click",()=>{if(!pointerLocked)tryPointerLock();});
+document.addEventListener("pointerlockchange",()=>{
+  pointerLocked=document.pointerLockElement===view;
+  setHint();
+});
+document.addEventListener("pointerlockerror",()=>{pointerLocked=false;setHint();});
+document.addEventListener("mousemove",e=>{
+  if(!pointerLocked)return;
+  player.a+=e.movementX*0.0022;
+  player.pitch=clamp(player.pitch-e.movementY*0.35,-H*0.42,H*0.42);
+});
+addEventListener("keydown",e=>{
+  if(typing){if(e.key==="Escape"){e.target.blur();}return;}
+  keys[e.code]=true;
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();
+  if(e.code==="KeyM"&&!anyModalOpen())minimapBox.classList.toggle("on");
+  else if(e.code==="KeyJ"&&!anyModalOpen()){mode==="journey"?stopToFree():startJourney();}
+  else if(e.code==="KeyT"&&!anyModalOpen()){mode==="recall"?stopToFree():startRecall();}
+  else if(e.code==="KeyL"&&!anyModalOpen())openModal("listModal");
+  else if(e.code==="KeyH"&&!anyModalOpen())openModal("helpModal");
+  else if(e.code==="Escape"){
+    if(anyModalOpen()&&!$("startModal").classList.contains("on"))closeModals();
+    else if(card.classList.contains("on")&&mode!=="recall")hideCard();
+  }
+  else if(e.code==="Enter"&&$("startModal").classList.contains("on")){closeModals();tryPointerLock();}
+});
+addEventListener("keyup",e=>{keys[e.code]=false;});
+addEventListener("blur",()=>{for(const k in keys)keys[k]=false;touchMove={f:0,s:0};});
+
+// --- touch: left half = virtual stick, right half = look drag ---
+const stickBase=$("stickBase"),stickKnob=$("stickKnob");
+let stickId=null,lookId=null,stickOx=0,stickOy=0,lookLX=0,lookLY=0;
+view.addEventListener("touchstart",e=>{
+  touchActive=true;setHint();
+  for(const t of e.changedTouches){
+    if(t.clientX<innerWidth/2&&stickId===null){
+      stickId=t.identifier;stickOx=t.clientX;stickOy=t.clientY;
+      stickBase.style.display="block";
+      stickBase.style.left=(stickOx-48)+"px";stickBase.style.top=(stickOy-48)+"px";
+      stickKnob.style.left="28px";stickKnob.style.top="28px";
+    }else if(lookId===null){
+      lookId=t.identifier;lookLX=t.clientX;lookLY=t.clientY;
+    }
+  }
+  e.preventDefault();
+},{passive:false});
+view.addEventListener("touchmove",e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier===stickId){
+      let dx=t.clientX-stickOx,dy=t.clientY-stickOy;
+      const m=Math.hypot(dx,dy),max=54;
+      if(m>max){dx*=max/m;dy*=max/m;}
+      touchMove.f=-dy/max;touchMove.s=dx/max;
+      stickKnob.style.left=(28+dx)+"px";stickKnob.style.top=(28+dy)+"px";
+    }else if(t.identifier===lookId){
+      player.a+=(t.clientX-lookLX)*0.006;
+      player.pitch=clamp(player.pitch-(t.clientY-lookLY)*0.5,-H*0.42,H*0.42);
+      lookLX=t.clientX;lookLY=t.clientY;
+    }
+  }
+  e.preventDefault();
+},{passive:false});
+function endTouch(e){
+  for(const t of e.changedTouches){
+    if(t.identifier===stickId){stickId=null;touchMove={f:0,s:0};stickBase.style.display="none";}
+    if(t.identifier===lookId)lookId=null;
+  }
+}
+view.addEventListener("touchend",endTouch);
+view.addEventListener("touchcancel",endTouch);
+
+/* ============================================================
+   12. Boot + main loop
+   ============================================================ */
+function rebuildAll(){
+  generatePalace();
+  buildTextures();
+  placeLoci();
+  player.x=spawn.x;player.y=spawn.y;player.a=spawn.a;player.pitch=0;
+  stopToFree();
+  currentRoomName="";updateRoomName();
+}
+resize();
+rebuildAll();
+setHint();
+setModeChip();
+
+let last=performance.now();
+function frame(now){
+  let dt=(now-last)/1000;last=now;
+  if(dt>0.05)dt=0.05;
+  if(!anyModalOpen()){
+    const moving=move(dt);
+    if(moving>0){bobPhase+=dt*moving*2.6;bobAmt=Math.min(1,bobAmt+dt*5);}
+    else bobAmt=Math.max(0,bobAmt-dt*5);
+    markSeen();
+    updateRoomName();
+    updateProximity(now);
+    updateCompass();
+  }
+  render(now);
+  if(minimapBox.classList.contains("on"))drawMinimap();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
